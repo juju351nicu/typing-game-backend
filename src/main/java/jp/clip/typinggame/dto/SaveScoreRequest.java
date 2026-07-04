@@ -6,6 +6,19 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
+/**
+ * スコア保存APIのリクエストDTOです。
+ *
+ * @param time クリアタイム
+ * @param score ゲームスコア
+ * @param mode 難易度を表すモード値
+ * @param gameRule ゲームルール
+ * @param timeLimitSeconds タイムアタック時の制限時間（秒）
+ * @param wpm 1分あたりの入力文字数
+ * @param accuracy 入力の正確率
+ * @param missCount ミスタイプ数
+ * @param correctCharacterCount 正しく入力した文字数
+ */
 public record SaveScoreRequest(
         @NotBlank
         String time,
