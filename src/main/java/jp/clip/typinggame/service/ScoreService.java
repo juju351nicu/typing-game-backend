@@ -34,17 +34,7 @@ public class ScoreService {
      */
     @Transactional
     public ScoreResponse save(SaveScoreRequest request) {
-        Score score = new Score();
-        score.setTime(request.time());
-        score.setScore(request.score());
-        score.setMode(request.mode());
-        score.setGameRule(request.gameRule());
-        score.setTimeLimitSeconds(request.timeLimitSeconds());
-        score.setWpm(request.wpm());
-        score.setAccuracy(request.accuracy());
-        score.setMissCount(request.missCount());
-        score.setCorrectCharacterCount(request.correctCharacterCount());
-
+        Score score = toScoreEntity(request);
         return toResponse(scoreRepository.save(score));
     }
 
@@ -61,23 +51,44 @@ public class ScoreService {
     }
 
     /**
+     * スコア保存リクエストをEntityへ変換します。
+     *
+     * @param request スコア保存リクエスト
+     * @return スコアEntity
+     */
+    private Score toScoreEntity(SaveScoreRequest request) {
+        Score score = new Score();
+        score.setTime(request.getTime());
+        score.setScore(request.getScore());
+        score.setMode(request.getMode());
+        score.setGameRule(request.getGameRule());
+        score.setTimeLimitSeconds(request.getTimeLimitSeconds());
+        score.setWpm(request.getWpm());
+        score.setAccuracy(request.getAccuracy());
+        score.setMissCount(request.getMissCount());
+        score.setCorrectCharacterCount(request.getCorrectCharacterCount());
+        return score;
+    }
+
+    /**
      * EntityをAPIレスポンス用DTOへ変換します。
      *
      * @param score スコアEntity
      * @return APIレスポンス用DTO
      */
     private ScoreResponse toResponse(Score score) {
-        return new ScoreResponse(
-                score.getId(),
-                score.getTime(),
-                score.getScore(),
-                score.getMode(),
-                score.getGameRule(),
-                score.getTimeLimitSeconds(),
-                score.getWpm(),
-                score.getAccuracy(),
-                score.getMissCount(),
-                score.getCorrectCharacterCount(),
-                score.getCreatedAt().format(DATE_FORMATTER));
+        ScoreResponse response = new ScoreResponse();
+        response.setId(score.getId());
+        response.setTime(score.getTime());
+        response.setScore(score.getScore());
+        response.setMode(score.getMode());
+        response.setGameRule(score.getGameRule());
+        response.setTimeLimitSeconds(score.getTimeLimitSeconds());
+        response.setWpm(score.getWpm());
+        response.setAccuracy(score.getAccuracy());
+        response.setMissCount(score.getMissCount());
+        response.setCorrectCharacterCount(score.getCorrectCharacterCount());
+        response.setDate(score.getCreatedAt().format(DATE_FORMATTER));
+        return response;
     }
 }
