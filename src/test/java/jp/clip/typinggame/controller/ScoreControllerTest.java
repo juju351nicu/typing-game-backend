@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -21,9 +22,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jp.clip.typinggame.repository.ScoreRepository;
 
+/**
+ * スコアAPIのController層を確認するテストです。
+ *
+ * <p>
+ * JUnit 5の {@link DisplayName} を使い、テストレポート上でも確認しているAPI仕様が
+ * 日本語で分かるようにしています。
+ * </p>
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@DisplayName("スコアAPI")
 class ScoreControllerTest {
 
     @Autowired
@@ -35,12 +45,25 @@ class ScoreControllerTest {
     @Autowired
     private ScoreRepository scoreRepository;
 
+    /**
+     * 各テスト実行前にスコアテーブルを空にします。
+     *
+     * <p>
+     * テスト同士がDBデータを共有すると実行順序に依存しやすいため、テストごとに初期状態をそろえます。
+     * </p>
+     */
     @BeforeEach
     void setUp() {
         scoreRepository.deleteAll();
     }
 
+    /**
+     * スコア保存APIの正常系を確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
     @Test
+    @DisplayName("POST /api/scores はスコアを保存して201を返す")
     void saveScoreReturnsCreatedScore() throws Exception {
         Map<String, Object> request = Map.of(
                 "time", "00:00:28.00",
@@ -70,7 +93,13 @@ class ScoreControllerTest {
                 .andExpect(jsonPath("$.date").isString());
     }
 
+    /**
+     * スコア一覧取得APIの正常系を確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
     @Test
+    @DisplayName("GET /api/scores は保存済みスコア一覧を返す")
     void findAllReturnsSavedScores() throws Exception {
         Map<String, Object> request = Map.of(
                 "time", "00:01:10.00",
@@ -95,7 +124,13 @@ class ScoreControllerTest {
                 .andExpect(jsonPath("$[0].gameRule").value("normal"));
     }
 
+    /**
+     * スコア保存APIのvalidationエラーを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
     @Test
+    @DisplayName("POST /api/scores は不正なスコアの場合400を返す")
     void saveScoreReturnsBadRequestWhenInvalid() throws Exception {
         Map<String, Object> request = Map.of(
                 "time", "00:00:28.00",

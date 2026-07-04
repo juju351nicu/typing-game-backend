@@ -135,7 +135,11 @@ recordの特徴:
 
 ## Tests
 
+- JUnit は JUnit 5（Jupiter）を使う。
+- テストクラスとテストメソッドには、必要に応じて `@DisplayName` を付ける。
+- `@DisplayName` は、テストレポート上で仕様が分かる日本語名にする。
 - Controller のAPI仕様は `MockMvc` で確認する。
 - 保存APIは正常系と validation エラーを確認する。
 - DB接続が必要なテストは、ローカルMySQLではなくテスト用H2を使う。
 - バグ修正時は、可能なら再発防止のテストを追加する。
+- テストのJavadocには、「どのAPI仕様を確認しているか」を簡潔に書く。
