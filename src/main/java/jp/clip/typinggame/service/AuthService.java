@@ -20,7 +20,6 @@ import jp.clip.typinggame.dto.LoginRequest;
 import jp.clip.typinggame.dto.LoginResponse;
 import jp.clip.typinggame.dto.UserResponse;
 import jp.clip.typinggame.entity.User;
-import jp.clip.typinggame.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -33,11 +32,11 @@ public class AuthService {
     /** Spring Securityの認証処理を実行するManagerです。 */
     private final AuthenticationManager authenticationManager;
 
-    /** ユーザー情報へアクセスするRepositoryです。 */
-    private final UserRepository userRepository;
-
     /** ユーザー情報をレスポンスDTOへ変換するサービスです。 */
     private final UserService userService;
+
+    /** 認証情報からログイン中ユーザーを取得するサービスです。 */
+    private final CurrentUserService currentUserService;
 
     /**
      * ログイン認証を行い、認証情報をHTTPセッションに保存します。
@@ -63,7 +62,7 @@ public class AuthService {
         HttpSession session = httpRequest.getSession(true);
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
 
-        User user = findAuthenticatedUser(authentication);
+        User user = currentUserService.findAuthenticatedUser(authentication);
         user.setLastLoginAt(LocalDateTime.now());
 
         LoginResponse response = new LoginResponse();
@@ -79,18 +78,6 @@ public class AuthService {
      */
     @Transactional(readOnly = true)
     public UserResponse findCurrentUser(Authentication authentication) {
-        return userService.toResponse(findAuthenticatedUser(authentication));
-    }
-
-    /**
-     * 認証情報からユーザーEntityを取得します。
-     *
-     * @param authentication 認証情報
-     * @return ユーザーEntity
-     */
-    private User findAuthenticatedUser(Authentication authentication) {
-        LoginUserDetails userDetails = (LoginUserDetails) authentication.getPrincipal();
-        return userRepository.findById(userDetails.getUserId())
-                .orElseThrow(() -> new IllegalStateException("ログインユーザーが見つかりません。"));
+        return userService.toResponse(currentUserService.findAuthenticatedUser(authentication));
     }
 }

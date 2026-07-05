@@ -86,6 +86,40 @@ APIエラーはFEで扱いやすいように、共通して `fieldErrors` 形式
 - APIや業務処理が増えて、差し替えやテストダブルが必要になった段階で `Service` / `ServiceImpl` 化を検討する。
 - `ServiceImpl` 化する場合は、一部だけでなく対象サービスの命名を揃える。
 
+## Frontend / Ghost-PDF5 との対応
+
+Ghost-PDF5 の静的JavaScriptは、typingGameのTypeScript実装へそのままコピーせず、責務ごとに対応するファイルへ考え方を寄せます。
+
+- Ghost-PDF5 `const.js`
+  - 定数を集約する考え方を参考にする。
+  - typingGameでは `src/constants/const.ts` に置く。
+- Ghost-PDF5 `rest.js`
+  - fetchの共通処理、HTTPメソッド、JSON送受信の考え方を参考にする。
+  - typingGameでは `src/utils/fetchClient.ts` に置く。
+  - typingGameはセッションCookie認証のため、API呼び出しでは `credentials: "include"` を使う。
+- Ghost-PDF5 `util.js`
+  - 空判定、localStorage、文字列補助などの考え方を参考にする。
+  - typingGameでは `src/utils/gameUtils.ts` など、用途が分かる名前へ分ける。
+- Ghost-PDF5 `main.js`
+  - 画面状態、エラー表示、REST呼び出しの流れは参考にする。
+  - typingGameはVue 3 / Composition API / Pinia構成なので、Options APIの大きな1ファイル構成はそのまま移植しない。
+
+新しく `rest.ts`、`util.ts`、`const.ts` を重複して増やす前に、既存の `fetchClient.ts`、`gameUtils.ts`、`constants/const.ts` に追加できるか確認してください。
+
+## Score API の使い分け
+
+- `POST /api/scores`
+  - 公開スコア、ランキング、ゲストも含む全体向けの保存APIとして残す。
+- `GET /api/scores`
+  - 公開スコア一覧またはランキング前段の取得APIとして残す。
+- `POST /api/me/scores`
+  - ログインユーザー自身に紐づくスコア保存APIとして使う。
+  - FEではログイン済みの場合だけこのAPIを呼び出す。
+- `GET /api/me/scores`
+  - ログインユーザー自身の保存済みスコア一覧APIとして使う。
+
+未ログインユーザーのプレイ結果は、引き続きフロントエンドのlocalStorageへ保存します。API保存に失敗した場合も、localStorage側の保存結果は消さない方針です。
+
 ### Apache Commons
 
 このプロジェクトでは、現場でよく使われる補助ライブラリとして以下を入れています。

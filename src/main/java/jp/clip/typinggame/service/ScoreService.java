@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jp.clip.typinggame.dto.SaveScoreRequest;
 import jp.clip.typinggame.dto.ScoreResponse;
 import jp.clip.typinggame.entity.Score;
+import jp.clip.typinggame.entity.User;
 import jp.clip.typinggame.repository.ScoreRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -39,6 +40,20 @@ public class ScoreService {
     }
 
     /**
+     * ログインユーザーに紐づくスコア情報を保存します。
+     *
+     * @param request 保存するスコア情報
+     * @param user ログイン中ユーザー
+     * @return 保存後のスコア情報
+     */
+    @Transactional
+    public ScoreResponse saveForUser(SaveScoreRequest request, User user) {
+        Score score = toScoreEntity(request);
+        score.setUser(user);
+        return toResponse(scoreRepository.save(score));
+    }
+
+    /**
      * 保存済みスコア情報を作成日時の降順で取得します。
      *
      * @return 保存済みスコア情報の一覧
@@ -46,6 +61,19 @@ public class ScoreService {
     @Transactional(readOnly = true)
     public List<ScoreResponse> findAll() {
         return scoreRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * 指定ユーザーに紐づく保存済みスコア情報を作成日時の降順で取得します。
+     *
+     * @param user ユーザー情報
+     * @return 指定ユーザーに紐づく保存済みスコア情報の一覧
+     */
+    @Transactional(readOnly = true)
+    public List<ScoreResponse> findAllByUser(User user) {
+        return scoreRepository.findAllByUserOrderByCreatedAtDesc(user).stream()
                 .map(this::toResponse)
                 .toList();
     }

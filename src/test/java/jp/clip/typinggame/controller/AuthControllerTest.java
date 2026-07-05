@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jp.clip.typinggame.repository.ScoreRepository;
 import jp.clip.typinggame.repository.UserRepository;
 
 /**
@@ -41,11 +42,15 @@ class AuthControllerTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ScoreRepository scoreRepository;
+
     /**
-     * 各テスト実行前にユーザーテーブルを空にします。
+     * 各テスト実行前にスコアテーブルとユーザーテーブルを空にします。
      */
     @BeforeEach
     void setUp() {
+        scoreRepository.deleteAll();
         userRepository.deleteAll();
     }
 

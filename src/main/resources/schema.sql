@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS scores (
   id BIGINT NOT NULL AUTO_INCREMENT,
+  user_id BIGINT NULL,
   time VARCHAR(20) NOT NULL,
   score INT NOT NULL,
   mode INT NOT NULL,
@@ -23,5 +24,7 @@ CREATE TABLE IF NOT EXISTS scores (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   INDEX idx_scores_created_at (created_at),
-  INDEX idx_scores_ranking (game_rule, time_limit_seconds, score, time)
+  INDEX idx_scores_ranking (game_rule, time_limit_seconds, score, time),
+  INDEX idx_scores_user_created_at (user_id, created_at),
+  CONSTRAINT fk_scores_user_id FOREIGN KEY (user_id) REFERENCES users(id)
 );

@@ -2,7 +2,7 @@
 
 typingGame のバックエンドAPIです。
 
-現在はスコア保存・スコア一覧取得を最小構成として実装しています。フロントエンド側は localStorage fallback を残したまま、API保存を追加していく方針です。
+現在はスコア保存・スコア一覧取得、ユーザー登録、ログイン、ログインユーザー別スコア保存を実装しています。フロントエンド側は localStorage fallback を残したまま、ログイン済みユーザーだけAPI保存を追加していく方針です。
 
 ## 技術構成
 
@@ -125,10 +125,6 @@ Content-Type: application/json
 }
 ```
 
-## 追加予定のAPI
-
-まずは「ゲスト利用は localStorage、登録ユーザーはDB保存」という形に進めます。
-
 ### ユーザー登録
 
 ```http
@@ -191,6 +187,9 @@ POST /api/me/scores
 ```
 
 ログイン中ユーザーに紐づくスコアを保存します。
+未ログインの場合は `401 Unauthorized` になります。
+
+リクエスト内容は `POST /api/scores` と同じです。
 
 ### ユーザー別スコア一覧取得
 
@@ -199,6 +198,9 @@ GET /api/me/scores
 ```
 
 ログイン中ユーザーに紐づくスコア一覧を取得します。
+未ログインの場合は `401 Unauthorized` になります。
+
+## 追加予定のAPI
 
 ### ランキング取得
 
@@ -219,21 +221,18 @@ limit=20
 ## フロントエンド連携方針
 
 - 未ログインユーザーは、これまで通り localStorage にスコアを保存する。
-- 登録済みユーザーは、バックエンドAPIにスコアを保存する。
+- 登録済みユーザーは、`POST /api/me/scores` でバックエンドAPIにスコアを保存する。
 - API接続に失敗した場合でも、フロントエンド側の localStorage fallback は残す。
 - まずは既存のスコア保存体験を壊さず、DB保存を追加する。
-- 認証APIを追加した後に、ユーザー別スコア保存へ切り替える。
 - ログインAPIはセッションCookie方式で開始するため、FE側のAPI呼び出しでは `credentials: "include"` を使う。
 - ログイン画面は todo-frontend の `Login.vue` を参考にする。ただし typingGame はセッションCookie方式のため、token/localStorage保存の実装はそのまま流用しない。
 - APIエラーは `fieldErrors` 形式で返し、FE側は同じ形式でエラー表示する。
 
 ## 今後の実装順
 
-1. BEに共通例外レスポンスを追加する。
-2. Swagger UIを追加する。
-3. FEに登録・ログインフォームを追加する。
-4. FEで `fieldErrors` 表示に対応する。
-5. 必要になった段階で `Service` / `ServiceImpl` 化を検討する。
+1. FEでログイン済みユーザーのスコア一覧を `GET /api/me/scores` から取得するか検討する。
+2. ランキングAPIを追加する。
+3. 必要になった段階で `Service` / `ServiceImpl` 化を検討する。
 
 ## 実装方針
 
