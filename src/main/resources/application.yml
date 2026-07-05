@@ -18,7 +18,9 @@ spring:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 0
-    locations: classpath:db/migration
+    locations:
+      - classpath:db/migration
+      - classpath:db/vendor/{vendor}
 
 server:
   address: localhost

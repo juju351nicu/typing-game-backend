@@ -131,6 +131,8 @@ todo / Ghost / typingGame を揃える時は、先に typingGame で小さく実
 現在の方針:
 
 - Flyway導入後は、DB変更を `schema.sql` の直接編集ではなく `V1__create_initial_schema.sql`、`V2__add_xxx.sql` のようなmigrationで管理する。
+- DB種類ごとに必要な補正SQLは `db/vendor/{vendor}` に置く。
+- MySQLだけで必要な既存ローカルDB補正は `db/vendor/mysql` に置き、H2テストへ無理に適用しない。
 - JPAの `ddl-auto` は `validate` にして、EntityとDB定義のズレを検知する。
 - Spring Bootの `spring.sql.init.mode` は `never` にして、`schema.sql` / `data.sql` の自動実行とFlywayを混在させない。
 

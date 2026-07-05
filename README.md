@@ -23,13 +23,15 @@ typingGame のバックエンドAPIです。
 
 ## 起動前の準備
 
-ローカルMySQLを起動します。
+ローカルでバックエンドを起動する場合は、先にMySQLを起動してDBを用意します。
+
+MySQLを起動します。
 
 ```bash
 mysql.server start
 ```
 
-データベースを作成します。
+`typing_game` データベースが未作成の場合は、以下を実行します。
 
 ```bash
 mysql -u root < src/main/resources/create-database.sql
@@ -42,11 +44,34 @@ src/main/resources/db/migration
 ```
 
 初期テーブル定義は `V1__create_initial_schema.sql`、サンプルスコア投入は `V2__insert_sample_scores.sql` に置いています。
+既存ローカルDB向けの補正migrationは、MySQL専用として `db/vendor/mysql` に置いています。
 
 既存のローカルDBに `flyway_schema_history` がない場合は、`baseline-on-migrate` により現在のDBを基準化してからmigrationを実行します。
 手元DBのテーブル定義が古く、JPA validate でカラム不足などが出る場合は、学習用DBを作り直すか、足りないカラムを手動で追加してください。
 
-## 起動
+## ローカル起動手順
+
+基本的には以下の順番で起動確認します。
+
+1. MySQLを起動する。
+2. 初回だけDBを作成する。
+3. Spring Bootを起動する。
+4. Swagger UIを開く。
+5. 必要に応じてcurlでAPI疎通確認する。
+
+MySQLを起動します。
+
+```bash
+mysql.server start
+```
+
+初回だけDBを作成します。
+
+```bash
+mysql -u root < src/main/resources/create-database.sql
+```
+
+Spring Bootを起動します。
 
 ```bash
 ./mvnw spring-boot:run
@@ -58,9 +83,27 @@ src/main/resources/db/migration
 http://localhost:8091
 ```
 
+API疎通確認は以下で行えます。
+
+```bash
+curl http://localhost:8091/api/scores
+```
+
+MySQLを停止したい場合は以下を実行します。
+
+```bash
+mysql.server stop
+```
+
 ## Swagger UI
 
 API仕様は Swagger UI で確認できます。
+
+```text
+http://localhost:8091/swagger-ui/index.html
+```
+
+環境によっては以下でも開けます。
 
 ```text
 http://localhost:8091/swagger-ui.html

@@ -13,4 +13,6 @@ spring:
       mode: never
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations:
+      - classpath:db/migration
+      - classpath:db/vendor/{vendor}
