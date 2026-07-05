@@ -106,6 +106,53 @@ Ghost-PDF5 の静的JavaScriptは、typingGameのTypeScript実装へそのまま
 
 新しく `rest.ts`、`util.ts`、`const.ts` を重複して増やす前に、既存の `fetchClient.ts`、`gameUtils.ts`、`constants/const.ts` に追加できるか確認してください。
 
+### typingGame から Ghost-PDF5 へ流用する時の方針
+
+将来的に Ghost-PDF5 を整理する場合は、Ghost側の `const.js`、`rest.js`、`util.js` をそのまま育てるより、typingGame側で整理した責務分けを基準にします。
+
+- `fetchClient.ts`
+  - fetch共通処理、JSON送受信、HTTPエラー、Cookie送受信などを扱う。
+  - Ghost-PDF5へ移す場合も、まずは `rest.js` の責務をこの形へ寄せる。
+- `gameUtils.ts`
+  - 空判定、localStorage、ブラウザ判定など、画面やドメインから独立した補助処理を扱う。
+  - Ghost-PDF5へ移す場合は、PDF固有処理と汎用Utilを混ぜすぎない。
+- `const.ts`
+  - URL、画面選択肢、定数値などを集約する。
+  - Ghost-PDF5へ移す場合も、文字列リテラルやAPIパスを画面内に散らさない。
+
+Ghost-PDF5 がJavaScriptのままの場合、TypeScriptの型そのものは流用できません。ただし、関数名、責務分離、エラーハンドリング、localStorageの扱いは流用できます。
+
+todo / Ghost / typingGame を揃える時は、先に typingGame で小さく実装してから、うまくいった責務分けを他プロジェクトへ戻す方針にします。
+
+## Database Migration
+
+現場でFlywayを使っているため、このプロジェクトでもDB変更が増える段階でFlywayへ移行します。
+
+現時点の方針:
+
+- すぐに入れてもよいが、今回のユーザー別スコアAPI追加とは別コミットにする。
+- 今回の変更を一度コミットした後、次のBE整理としてFlywayを導入するのが学習しやすい。
+- Flyway導入後は、DB変更を `schema.sql` の直接編集ではなく `V1__init_schema.sql`、`V2__add_xxx.sql` のようなmigrationで管理する。
+
+導入時の想定:
+
+```text
+src/main/resources/schema.sql
+↓
+src/main/resources/db/migration/V1__init_schema.sql
+```
+
+- 既存ローカルDBを使い続ける場合は、`baseline-on-migrate` を使うか検討する。
+- 学習用でデータを消してよい場合は、開発DBを作り直して `V1__init_schema.sql` から作成してもよい。
+- Flywayへ移行した後は、JPAの `ddl-auto` は `update` から `validate` または `none` に寄せる。
+- テスト用H2もmigrationで作れるようにして、ローカルMySQLとテストDBの差を減らす。
+
+今すぐFlywayを入れない理由:
+
+- まだテーブル数とDDL差分が少なく、まずはAPIと認証の学習を優先できる。
+- 今回の作業に混ぜると、API追加とDB migration導入の論点が混ざる。
+- ただし現場に合わせる意味では早めに入れる価値があるため、次のBE整理候補にする。
+
 ## Score API の使い分け
 
 - `POST /api/scores`
@@ -224,3 +271,38 @@ recordの特徴:
 - DB接続が必要なテストは、ローカルMySQLではなくテスト用H2を使う。
 - バグ修正時は、可能なら再発防止のテストを追加する。
 - テストのJavadocには、「どのAPI仕様を確認しているか」を簡潔に書く。
+
+### Spring Boot Test Context
+
+`@SpringBootTest` はSpring Bootのアプリケーションコンテキストを起動するため、Controller層やSecurity込みのAPIテストには分かりやすい一方、テスト数が増えると重くなりやすいです。
+
+現時点の判断:
+
+- 現在のテスト数では、メモリ圧迫やOOMは起きていない。
+- `./mvnw test` が安定して成功しているため、今すぐ分割や最適化は不要。
+- ただし `@SpringBootTest` のControllerテストが増えるほど、起動時間とメモリ使用量は増えやすい。
+
+今後重くなった場合の対応:
+
+- ServiceなどSpring全体が不要な処理は、単体テストへ切り出す。
+- Controllerだけを薄く確認したい場合は、必要に応じて `@WebMvcTest` を検討する。
+- Security、Session、Repository、DBまで含めたいAPI仕様テストは `@SpringBootTest` + `MockMvc` を使う。
+
+### JUnit 5 の `@Tag`
+
+`@Tag` は、テストを種類ごとに分けて実行したくなった段階で使います。
+
+例:
+
+```java
+@Tag("integration")
+@SpringBootTest
+class MyScoreControllerTest {
+}
+```
+
+現時点の判断:
+
+- まだテスト数が少ないため、`@Tag` は導入しなくてよい。
+- `unit`、`integration`、`slow` のように分けたくなった時に導入する。
+- 導入する場合は、MavenやCI側の実行コマンドも合わせて整理する。
