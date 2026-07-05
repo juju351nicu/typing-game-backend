@@ -14,6 +14,7 @@ typingGame のバックエンドAPIです。
 - Spring Security
 - springdoc-openapi / Swagger UI
 - Bean Validation
+- Flyway
 - MySQL
 - Lombok
 - JUnit 5
@@ -33,6 +34,17 @@ mysql.server start
 ```bash
 mysql -u root < src/main/resources/create-database.sql
 ```
+
+テーブル作成と変更は Flyway migration で管理します。
+
+```text
+src/main/resources/db/migration
+```
+
+初期テーブル定義は `V1__create_initial_schema.sql`、サンプルスコア投入は `V2__insert_sample_scores.sql` に置いています。
+
+既存のローカルDBに `flyway_schema_history` がない場合は、`baseline-on-migrate` により現在のDBを基準化してからmigrationを実行します。
+手元DBのテーブル定義が古く、JPA validate でカラム不足などが出る場合は、学習用DBを作り直すか、足りないカラムを手動で追加してください。
 
 ## 起動
 
@@ -69,6 +81,7 @@ Spring Securityを使っているため、Swagger関連のパスは `SecurityCon
 ```
 
 テストではローカルMySQLではなく、H2 Database を使います。
+テストDBのテーブルも Flyway migration から作成し、JPA はEntityとDB定義の差分を validate します。
 
 ## 現在実装済みのAPI
 

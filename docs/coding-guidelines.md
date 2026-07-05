@@ -126,32 +126,30 @@ todo / Ghost / typingGame を揃える時は、先に typingGame で小さく実
 
 ## Database Migration
 
-現場でFlywayを使っているため、このプロジェクトでもDB変更が増える段階でFlywayへ移行します。
+現場でFlywayを使っているため、このプロジェクトでもDB変更はFlywayで管理します。
 
-現時点の方針:
+現在の方針:
 
-- すぐに入れてもよいが、今回のユーザー別スコアAPI追加とは別コミットにする。
-- 今回の変更を一度コミットした後、次のBE整理としてFlywayを導入するのが学習しやすい。
-- Flyway導入後は、DB変更を `schema.sql` の直接編集ではなく `V1__init_schema.sql`、`V2__add_xxx.sql` のようなmigrationで管理する。
+- Flyway導入後は、DB変更を `schema.sql` の直接編集ではなく `V1__create_initial_schema.sql`、`V2__add_xxx.sql` のようなmigrationで管理する。
+- JPAの `ddl-auto` は `validate` にして、EntityとDB定義のズレを検知する。
+- Spring Bootの `spring.sql.init.mode` は `never` にして、`schema.sql` / `data.sql` の自動実行とFlywayを混在させない。
 
 導入時の想定:
 
 ```text
-src/main/resources/schema.sql
-↓
-src/main/resources/db/migration/V1__init_schema.sql
+src/main/resources/db/migration/V1__create_initial_schema.sql
 ```
 
 - 既存ローカルDBを使い続ける場合は、`baseline-on-migrate` を使うか検討する。
-- 学習用でデータを消してよい場合は、開発DBを作り直して `V1__init_schema.sql` から作成してもよい。
-- Flywayへ移行した後は、JPAの `ddl-auto` は `update` から `validate` または `none` に寄せる。
+- 学習用でデータを消してよい場合は、開発DBを作り直して `V1__create_initial_schema.sql` から作成してもよい。
 - テスト用H2もmigrationで作れるようにして、ローカルMySQLとテストDBの差を減らす。
 
-今すぐFlywayを入れない理由:
+既存ローカルDBへの注意:
 
-- まだテーブル数とDDL差分が少なく、まずはAPIと認証の学習を優先できる。
-- 今回の作業に混ぜると、API追加とDB migration導入の論点が混ざる。
-- ただし現場に合わせる意味では早めに入れる価値があるため、次のBE整理候補にする。
+- 既存DBに `flyway_schema_history` がない場合は、`baseline-on-migrate` により基準化する。
+- 既存DBのテーブル定義が古い場合、Flywayの基準化だけでは不足カラムは追加されない。
+- 学習用DBでデータを残す必要がない場合は、DBを作り直してmigrationで再作成する方が分かりやすい。
+- データを残す必要がある場合は、不足カラムを手動で追加するか、専用migrationを作る。
 
 ## Score API の使い分け
 
