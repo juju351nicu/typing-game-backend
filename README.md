@@ -11,6 +11,8 @@ typingGame のバックエンドAPIです。
 - Maven
 - Spring Web
 - Spring Data JPA
+- Spring Security
+- springdoc-openapi / Swagger UI
 - Bean Validation
 - MySQL
 - Lombok
@@ -43,6 +45,22 @@ mysql -u root < src/main/resources/create-database.sql
 ```text
 http://localhost:8091
 ```
+
+## Swagger UI
+
+API仕様は Swagger UI で確認できます。
+
+```text
+http://localhost:8091/swagger-ui.html
+```
+
+OpenAPI JSON は以下で確認できます。
+
+```text
+http://localhost:8091/v3/api-docs
+```
+
+Spring Securityを使っているため、Swagger関連のパスは `SecurityConfig` で認証不要にしています。
 
 ## テスト
 
@@ -118,8 +136,9 @@ POST /api/users
 ```
 
 新規ユーザーを登録します。
+パスワードは平文では保存せず、Spring Security の `BCryptPasswordEncoder` で暗号化して保存します。
 
-想定リクエスト:
+リクエスト例:
 
 ```json
 {
@@ -135,8 +154,10 @@ POST /api/auth/login
 ```
 
 登録済みユーザーのログインを行います。
+ログインに成功すると、Spring Security の認証情報をHTTPセッションに保存します。
+フロントエンドから呼び出す場合は、Cookieを送受信できるように `credentials: "include"` を付ける想定です。
 
-想定リクエスト:
+リクエスト例:
 
 ```json
 {
@@ -152,6 +173,7 @@ POST /api/auth/logout
 ```
 
 ログイン状態を終了します。
+Spring Security の logout 機能でHTTPセッションを破棄します。
 
 ### ログイン中ユーザー取得
 
@@ -160,6 +182,7 @@ GET /api/auth/me
 ```
 
 ログイン中のユーザー情報を取得します。
+未ログインの場合は `401 Unauthorized` になります。
 
 ### ユーザー別スコア保存
 
@@ -200,6 +223,17 @@ limit=20
 - API接続に失敗した場合でも、フロントエンド側の localStorage fallback は残す。
 - まずは既存のスコア保存体験を壊さず、DB保存を追加する。
 - 認証APIを追加した後に、ユーザー別スコア保存へ切り替える。
+- ログインAPIはセッションCookie方式で開始するため、FE側のAPI呼び出しでは `credentials: "include"` を使う。
+- ログイン画面は todo-frontend の `Login.vue` を参考にする。ただし typingGame はセッションCookie方式のため、token/localStorage保存の実装はそのまま流用しない。
+- APIエラーは `fieldErrors` 形式で返し、FE側は同じ形式でエラー表示する。
+
+## 今後の実装順
+
+1. BEに共通例外レスポンスを追加する。
+2. Swagger UIを追加する。
+3. FEに登録・ログインフォームを追加する。
+4. FEで `fieldErrors` 表示に対応する。
+5. 必要になった段階で `Service` / `ServiceImpl` 化を検討する。
 
 ## 実装方針
 

@@ -39,6 +39,53 @@ public class SaveScoreRequest {
 
 ## Dependencies
 
+### Spring Security
+
+このプロジェクトでは、登録ユーザーのログイン機能に Spring Security を使います。
+
+- パスワードは平文保存しない。
+- パスワード保存時は `BCryptPasswordEncoder` で暗号化する。
+- 認証ユーザーの取得は `UserDetailsService` を通す。
+- まずはセッションCookie方式で開始し、JWTは必要になった段階で検討する。
+- FEからログイン後APIを呼ぶ場合は、Cookie送受信のため `credentials: "include"` を付ける。
+- todo-backend のSecurity設定を参考にするが、`NoOpPasswordEncoder` は使わない。
+
+### Swagger / OpenAPI
+
+このプロジェクトでは、API仕様確認と学習のため Swagger UI を使います。
+
+- Spring Boot 3系では `springdoc-openapi-starter-webmvc-ui` を使う。
+- Swagger UI は `/swagger-ui.html` で確認する。
+- OpenAPI JSON は `/v3/api-docs` で確認する。
+- Spring Securityを使う場合、Swagger関連パスは `SecurityConfig` で認証不要にする。
+
+### 例外レスポンス
+
+APIエラーはFEで扱いやすいように、共通して `fieldErrors` 形式で返します。
+
+```json
+{
+  "fieldErrors": [
+    {
+      "errorCode": "NotEmpty",
+      "field": "loginEmail",
+      "message": "メールアドレスを入力してください。"
+    }
+  ]
+}
+```
+
+- validationエラーは `ApiExceptionHandler` で変換する。
+- ログイン失敗、重複登録、未ログインなども `fieldErrors` 形式に寄せる。
+- Ghost-PDF5 の例外レスポンスを参考にするが、`@Data` ではなく `@Getter` / `@Setter` を使う。
+- `System.out.println` でエラー内容を出力しない。
+
+## Service
+
+- 現時点では `ScoreService`、`UserService`、`AuthService` のように実装クラスを直接使う。
+- APIや業務処理が増えて、差し替えやテストダブルが必要になった段階で `Service` / `ServiceImpl` 化を検討する。
+- `ServiceImpl` 化する場合は、一部だけでなく対象サービスの命名を揃える。
+
 ### Apache Commons
 
 このプロジェクトでは、現場でよく使われる補助ライブラリとして以下を入れています。

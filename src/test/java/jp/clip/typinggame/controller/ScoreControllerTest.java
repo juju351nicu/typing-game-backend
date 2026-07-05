@@ -141,6 +141,7 @@ class ScoreControllerTest {
         mockMvc.perform(post("/api/scores")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors").isArray());
     }
 }
