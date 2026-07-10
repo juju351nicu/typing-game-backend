@@ -13,6 +13,46 @@
 - Service は業務処理と Entity / DTO の変換を主な責務にする。
 - Repository はDBアクセスの入口に絞る。
 
+## Package Naming
+
+### dto と model の使い分け
+
+このプロジェクトでは、APIのリクエスト / レスポンス専用クラスを `jp.clip.typinggame.dto` に置きます。
+
+```java
+package jp.clip.typinggame.dto;
+```
+
+`dto` は Data Transfer Object の略で、主にControllerの入口・出口で使うデータの形を表します。
+
+例:
+
+```text
+LoginRequest
+RegisterUserRequest
+SaveScoreRequest
+ScoreResponse
+UserResponse
+```
+
+これらはAPI通信のための入れ物であり、DBテーブルそのものや業務概念そのものではないため、`dto` に置きます。
+
+`model` は現場によって意味が広く、以下のような使われ方があります。
+
+```text
+model = 画面 / API / 業務 / DB など、何らかのデータ構造全般
+```
+
+現場によっては、request / response / entity / domain をまとめて `model` 配下に置くこともあります。
+そのため、既存プロジェクトで `model` パッケージを見かけた場合は、その現場で `model` が何を指しているかを先に確認してください。
+
+このプロジェクトでの判断基準:
+
+- APIのリクエスト / レスポンス専用クラスは `dto` に置く。
+- DBテーブルに対応するクラスは `entity` に置く。
+- 業務ルールを持つ中心概念が必要になった場合は、`domain` または `model` の導入を検討する。
+- 現時点では `model` パッケージは作らず、`dto` / `entity` / `repository` / `service` / `controller` の分け方を維持する。
+
 ## Lombok
 
 - DTO / Entity では、現場の書き方に合わせて Lombok の `@Getter` / `@Setter` を使ってよい。
