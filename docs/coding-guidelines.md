@@ -310,6 +310,33 @@ public enum GameRuleEnum implements CodeEnum {
 このパターンで `mode` / `gameRule` を enum 化すると、APIの外向き値を維持したまま、Java内部では型安全に扱いやすくなります。
 一方で、Request DTO、Response DTO、Entity、JPA変換、Swagger、FE型の影響範囲が出るため、Phase6完了後に小さなブランチで試します。
 
+保守性の結論:
+
+- 共通enumインターフェース方式には堅牢性がある。
+- ただし、null処理、JSONからenumへの逆変換、DB値との変換、命名ルールまでセットで決めると、さらに保守しやすい。
+- typingGame では、まず `gameRule` だけを小さく enum 化して試す。
+- `mode` は `0` / `1` / `2` の数値でFE、API、DBに広く関係しているため、`gameRule` の確認後に検討する。
+
+`gameRule` は、意味が読める文字列を外向きのキーとして維持します。
+
+```java
+NORMAL("normal", "通常モード"),
+TIME_ATTACK("timeAttack", "タイムアタック")
+```
+
+`NORMAL("1", "normal")` のように数字コードへ寄せると、APIやDBの値を見ただけでは意味が分かりにくくなります。
+すでに `normal` / `timeAttack` でFEとAPIがつながっているため、`gameRule` は文字列キーのままにします。
+
+`mode` を enum 化する場合は、既存の数値仕様に合わせます。
+
+```java
+EASY(0, "Easy"),
+NORMAL(1, "Normal"),
+HARD(2, "Hard")
+```
+
+つまり、すべてを数字コードへ揃えるのではなく、既存仕様と読みやすさに合わせて決めます。
+
 実装する場合は、以下を合わせて確認します。
 
 - Jackson の `@JsonValue` / `@JsonCreator` で既存JSON値を維持できるか。
@@ -319,6 +346,60 @@ public enum GameRuleEnum implements CodeEnum {
 - 正常系、validationエラー、不正値のテストを追加できるか。
 
 タイミングとしては、「自分の記録 / 全体ランキング」の切り替えとFEテストまで終わり、Phase6 の一通りの実装が一区切りしてから行います。
+
+### JPA @Converter と MapStruct の違い
+
+`@Converter` と MapStruct は、どちらも「変換」に関係しますが、責務が違います。
+
+`@Converter` は JPA の仕組みです。
+Entity のフィールド値とDBカラム値を変換するために使います。
+
+例:
+
+```text
+GameRuleEnum.NORMAL <-> "normal"
+```
+
+使う場所:
+
+- Entity とDBカラムの間
+- JPAがDBへ保存する時
+- JPAがDBから読み込む時
+
+向いている用途:
+
+- Entity のフィールドを enum にしたい。
+- DBには既存互換の文字列や数値を保存したい。
+- DB値との変換をEntity周辺に閉じ込めたい。
+
+MapStruct は Java オブジェクト同士を変換するライブラリです。
+DTO、Entity、Response などのフィールドコピーや型変換を自動生成するために使います。
+
+例:
+
+```text
+SaveScoreRequest -> Score
+Score -> ScoreResponse
+```
+
+使う場所:
+
+- Request DTO と Entity の間
+- Entity と Response DTO の間
+- Service層やMapper層
+
+向いている用途:
+
+- DTO / Entity / Response の項目が増えて、setterでの手書き変換が長くなってきた。
+- 複数画面や複数APIで似た変換が増えてきた。
+- 変換ルールをMapperとして分離したい。
+
+このプロジェクトでの当面の方針:
+
+- まだDTOとEntity変換は小さいため、まずはService内の `toScoreEntity` / `toResponse` で手書きする。
+- `gameRule` をEntityでenumとして持つ段階になったら、DB値との変換に JPA `@Converter` を検討する。
+- DTO / Entity / Response の変換が増えて手書きが読みづらくなった段階で、MapStruct導入を検討する。
+- `@Converter` はDB境界、MapStructはJavaオブジェクト境界、と分けて考える。
 
 ### Apache Commons
 
