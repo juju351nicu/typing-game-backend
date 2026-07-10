@@ -254,6 +254,62 @@ public enum GameMode {
 }
 ```
 
+現場で使っている enum 実装を参考にする場合は、特定プロジェクト名や業務名を持ち込まず、以下の「共通enumインターフェース方式」を学習材料にします。
+
+現場で見かける enum パターン:
+
+- 共通インターフェースで `getKey()` と `getValue()` を持つ。
+- `getKey()` に `@JsonValue` を付け、JSONへ返す値を enum 名ではなく外向きのキーにする。
+- enum本体には `_key` と `_value` を持たせる。
+- `@Schema(description = "...", enumAsRef = true)` でSwagger上のenum schemaを分かりやすくする。
+- `getByKey(String key)` を用意し、リクエスト値やDB値からenumへ戻せるようにする。
+- `StringUtils.trimToEmpty(key).toLowerCase(Locale.ROOT)` のように、null、前後空白、大文字小文字の揺れを吸収する。
+- `KEY_MAP` を事前に作成し、毎回 `values()` を走査しない。
+
+typingGame で導入する場合は、現場固有の名前を使わず、このプロジェクト用に名前を変えます。
+
+候補:
+
+```java
+public interface CodeEnum {
+
+    String getKey();
+
+    String getValue();
+}
+```
+
+`gameRule` を enum 化する場合のイメージ:
+
+```java
+@Schema(description = "ゲームルール", enumAsRef = true)
+@AllArgsConstructor
+public enum GameRuleEnum implements CodeEnum {
+
+    /** 通常モード */
+    NORMAL("normal", "通常モード"),
+    /** タイムアタック */
+    TIME_ATTACK("timeAttack", "タイムアタック");
+
+    private final String key;
+    private final String value;
+
+    @JsonValue
+    @Override
+    public String getKey() {
+        return key;
+    }
+
+    @Override
+    public String getValue() {
+        return value;
+    }
+}
+```
+
+このパターンで `mode` / `gameRule` を enum 化すると、APIの外向き値を維持したまま、Java内部では型安全に扱いやすくなります。
+一方で、Request DTO、Response DTO、Entity、JPA変換、Swagger、FE型の影響範囲が出るため、Phase6完了後に小さなブランチで試します。
+
 実装する場合は、以下を合わせて確認します。
 
 - Jackson の `@JsonValue` / `@JsonCreator` で既存JSON値を維持できるか。
