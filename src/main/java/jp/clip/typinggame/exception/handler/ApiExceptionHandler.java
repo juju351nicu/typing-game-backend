@@ -14,6 +14,8 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import jp.clip.typinggame.exception.CustomFieldError;
 import jp.clip.typinggame.exception.ErrorResponse;
 
@@ -60,6 +62,21 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
+     * RequestParamなどのvalidationエラーを共通エラーレスポンスへ変換します。
+     *
+     * @param ex validation例外
+     * @return 共通エラーレスポンス
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    protected ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+        List<CustomFieldError> fieldErrors = ex.getConstraintViolations().stream()
+                .map(this::toCustomFieldError)
+                .toList();
+
+        return ResponseEntity.badRequest().body(new ErrorResponse(fieldErrors));
+    }
+
+    /**
      * SpringのFieldErrorをAPI用のエラー情報へ変換します。
      *
      * @param fieldError Springのフィールドエラー
@@ -68,5 +85,33 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     private CustomFieldError toCustomFieldError(FieldError fieldError) {
         String errorCode = fieldError.getCode() == null ? "VALIDATION_ERROR" : fieldError.getCode();
         return new CustomFieldError(errorCode, fieldError.getField(), fieldError.getDefaultMessage());
+    }
+
+    /**
+     * ConstraintViolationをAPI用のエラー情報へ変換します。
+     *
+     * @param violation validationエラー
+     * @return API用のエラー情報
+     */
+    private CustomFieldError toCustomFieldError(ConstraintViolation<?> violation) {
+        return new CustomFieldError(
+                violation.getConstraintDescriptor().getAnnotation().annotationType().getSimpleName(),
+                extractFieldName(violation),
+                violation.getMessage());
+    }
+
+    /**
+     * validationエラーのプロパティパスからフィールド名を取得します。
+     *
+     * @param violation validationエラー
+     * @return フィールド名
+     */
+    private String extractFieldName(ConstraintViolation<?> violation) {
+        String propertyPath = violation.getPropertyPath().toString();
+        int lastSeparatorIndex = propertyPath.lastIndexOf('.');
+        if (lastSeparatorIndex < 0) {
+            return propertyPath;
+        }
+        return propertyPath.substring(lastSeparatorIndex + 1);
     }
 }

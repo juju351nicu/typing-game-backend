@@ -195,7 +195,7 @@ POST /api/users
 ```json
 {
   "loginEmail": "user@example.com",
-  "password": "password"
+  "password": "password123"
 }
 ```
 
@@ -214,7 +214,7 @@ POST /api/auth/login
 ```json
 {
   "loginEmail": "user@example.com",
-  "password": "password"
+  "password": "password123"
 }
 ```
 
@@ -256,8 +256,6 @@ GET /api/me/scores
 ログイン中ユーザーに紐づくスコア一覧を取得します。
 未ログインの場合は `401 Unauthorized` になります。
 
-## 追加予定のAPI
-
 ### ランキング取得
 
 ```http
@@ -265,14 +263,24 @@ GET /api/rankings
 ```
 
 全ユーザーまたは条件別のランキングを取得します。
+未ログインでも取得できます。
+並び順は、スコア降順、クリアタイム昇順、作成日時降順です。
 
 想定クエリ:
 
 ```text
 mode=2
 gameRule=timeAttack
+timeLimitSeconds=60
 limit=20
 ```
+
+クエリパラメータ:
+
+- `mode`: 難易度。`0` Easy、`1` Normal、`2` Hard
+- `gameRule`: ゲームルール。`normal` または `timeAttack`
+- `timeLimitSeconds`: タイムアタック時の制限時間（秒）
+- `limit`: 取得件数。未指定時は `20`
 
 ## フロントエンド連携方針
 
@@ -286,9 +294,8 @@ limit=20
 
 ## 今後の実装順
 
-1. FEでログイン済みユーザーのスコア一覧を `GET /api/me/scores` から取得するか検討する。
-2. ランキングAPIを追加する。
-3. 必要になった段階で `Service` / `ServiceImpl` 化を検討する。
+1. FEからランキングAPIを使うか検討する。
+2. 必要になった段階で `Service` / `ServiceImpl` 化を検討する。
 
 ## 実装方針
 

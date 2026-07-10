@@ -3,6 +3,7 @@ package jp.clip.typinggame.service;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,6 +75,30 @@ public class ScoreService {
     @Transactional(readOnly = true)
     public List<ScoreResponse> findAllByUser(User user) {
         return scoreRepository.findAllByUserOrderByCreatedAtDesc(user).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * ランキング表示用のスコア情報を取得します。
+     *
+     * @param mode 難易度
+     * @param gameRule ゲームルール
+     * @param timeLimitSeconds タイムアタック時の制限時間（秒）
+     * @param limit 取得件数
+     * @return ランキング表示用のスコア情報一覧
+     */
+    @Transactional(readOnly = true)
+    public List<ScoreResponse> findRankings(
+            Integer mode,
+            String gameRule,
+            Integer timeLimitSeconds,
+            Integer limit) {
+        return scoreRepository.findRankings(
+                mode,
+                gameRule,
+                timeLimitSeconds,
+                PageRequest.of(0, limit)).stream()
                 .map(this::toResponse)
                 .toList();
     }

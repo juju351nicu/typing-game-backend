@@ -207,6 +207,12 @@ src/main/resources/db/migration/V1__create_initial_schema.sql
   - FEではログイン済みの場合だけこのAPIを呼び出す。
 - `GET /api/me/scores`
   - ログインユーザー自身の保存済みスコア一覧APIとして使う。
+- `GET /api/rankings`
+  - 公開ランキング取得APIとして使う。
+  - 未ログインでも取得できる。
+  - クエリパラメータで `mode`、`gameRule`、`timeLimitSeconds`、`limit` を受け取る。
+  - 並び順はスコア降順、クリアタイム昇順、作成日時降順にする。
+  - 現時点では専用DTOを増やさず、既存の `ScoreResponse` を返す。
 
 未ログインユーザーのプレイ結果は、引き続きフロントエンドのlocalStorageへ保存します。API保存に失敗した場合も、localStorage側の保存結果は消さない方針です。
 

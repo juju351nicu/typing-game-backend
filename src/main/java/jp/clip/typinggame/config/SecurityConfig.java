@@ -58,6 +58,7 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users", "/api/auth/login").permitAll()
                 .requestMatchers("/api/scores/**").permitAll()
+                .requestMatchers("/api/rankings/**").permitAll()
                 .anyRequest().authenticated());
 
         http.logout(logout -> logout
