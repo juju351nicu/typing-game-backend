@@ -11,6 +11,7 @@ import jp.clip.typinggame.dto.SaveScoreRequest;
 import jp.clip.typinggame.dto.ScoreResponse;
 import jp.clip.typinggame.entity.Score;
 import jp.clip.typinggame.entity.User;
+import jp.clip.typinggame.enums.GameRuleEnum;
 import jp.clip.typinggame.repository.ScoreRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -94,9 +95,10 @@ public class ScoreService {
             String gameRule,
             Integer timeLimitSeconds,
             Integer limit) {
+        GameRuleEnum gameRuleEnum = gameRule == null ? null : GameRuleEnum.fromKey(gameRule);
         return scoreRepository.findRankings(
                 mode,
-                gameRule,
+                gameRuleEnum,
                 timeLimitSeconds,
                 PageRequest.of(0, limit)).stream()
                 .map(this::toResponse)

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import jp.clip.typinggame.entity.Score;
 import jp.clip.typinggame.entity.User;
+import jp.clip.typinggame.enums.GameRuleEnum;
 
 /**
  * スコア情報へアクセスするRepositoryです。
@@ -54,7 +55,7 @@ public interface ScoreRepository extends JpaRepository<Score, Long> {
             """)
     List<Score> findRankings(
             @Param("mode") Integer mode,
-            @Param("gameRule") String gameRule,
+            @Param("gameRule") GameRuleEnum gameRule,
             @Param("timeLimitSeconds") Integer timeLimitSeconds,
             Pageable pageable);
 }

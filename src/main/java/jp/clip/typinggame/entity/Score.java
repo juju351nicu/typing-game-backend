@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -12,6 +13,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jp.clip.typinggame.converter.GameRuleEnumConverter;
+import jp.clip.typinggame.enums.GameRuleEnum;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -53,9 +56,10 @@ public class Score {
     @Column(nullable = false)
     private Integer mode;
 
-    /** ゲームルールです。 */
+    /** ゲームルールです。DBにはnormal / timeAttackのキー値で保存します。 */
+    @Convert(converter = GameRuleEnumConverter.class)
     @Column(nullable = false, length = 20)
-    private String gameRule;
+    private GameRuleEnum gameRule;
 
     /** タイムアタック時の制限時間（秒）です。 */
     private Integer timeLimitSeconds;

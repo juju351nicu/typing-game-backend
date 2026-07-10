@@ -144,4 +144,30 @@ class ScoreControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors").isArray());
     }
+
+    /**
+     * スコア保存APIで不正なゲームルールを受け取った場合のエラーを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("POST /api/scores は不正なゲームルールの場合400を返す")
+    void saveScoreReturnsBadRequestWhenGameRuleIsInvalid() throws Exception {
+        Map<String, Object> request = Map.of(
+                "time", "00:00:28.00",
+                "score", 12,
+                "mode", 2,
+                "gameRule", "invalid",
+                "timeLimitSeconds", 60,
+                "wpm", 32,
+                "accuracy", 96,
+                "missCount", 2,
+                "correctCharacterCount", 80);
+
+        mockMvc.perform(post("/api/scores")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].errorCode").value("INVALID_REQUEST"));
+    }
 }

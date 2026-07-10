@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jp.clip.typinggame.enums.GameRuleEnum;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -56,10 +56,9 @@ public class SaveScoreRequest {
 
     /** ゲームルールです。 */
     @JsonProperty("gameRule")
-    @Schema(description = "ゲームルール。normal または timeAttack", example = "timeAttack")
-    @NotBlank(message = "ゲームルールを入力してください。")
-    @Pattern(regexp = "normal|timeAttack", message = "ゲームルールはnormalまたはtimeAttackを入力してください。")
-    private String gameRule;
+    @Schema(description = "ゲームルール。normal または timeAttack", example = "timeAttack", implementation = GameRuleEnum.class)
+    @NotNull(message = "ゲームルールを入力してください。")
+    private GameRuleEnum gameRule;
 
     /** タイムアタック時の制限時間（秒）です。 */
     @JsonProperty("timeLimitSeconds")

@@ -6,6 +6,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -42,6 +43,25 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
                 .toList();
 
         ErrorResponse response = new ErrorResponse(fieldErrors);
+        return handleExceptionInternal(ex, response, headers, HttpStatus.BAD_REQUEST, request);
+    }
+
+    /**
+     * JSONの形式不正やenum変換エラーを共通エラーレスポンスへ変換します。
+     *
+     * @param ex JSON読み取り例外
+     * @param headers レスポンスヘッダー
+     * @param status HTTPステータス
+     * @param request Webリクエスト
+     * @return 共通エラーレスポンス
+     */
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+            HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        ErrorResponse response = ErrorResponse.of(
+                "INVALID_REQUEST",
+                "",
+                "リクエストの形式が正しくありません。");
         return handleExceptionInternal(ex, response, headers, HttpStatus.BAD_REQUEST, request);
     }
 
