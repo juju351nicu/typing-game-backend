@@ -216,6 +216,54 @@ src/main/resources/db/migration/V1__create_initial_schema.sql
 
 未ログインユーザーのプレイ結果は、引き続きフロントエンドのlocalStorageへ保存します。API保存に失敗した場合も、localStorage側の保存結果は消さない方針です。
 
+## mode / gameRule の enum 化方針
+
+`mode` と `gameRule` は、将来的には enum 化を検討します。
+ただし、Phase6 のバックエンドAPI接続中は、既存のフロントエンド、DB、Swagger確認を安定させるため、すぐには変更しません。
+
+現在の外向きAPI値:
+
+```json
+{
+  "mode": 2,
+  "gameRule": "timeAttack"
+}
+```
+
+現時点の判断:
+
+- `gameRule` は `normal` / `timeAttack` のように候補値が少ないため、enum 化しやすい。
+- `mode` は `0` / `1` / `2` の数値でFE、API、DBがつながっているため、enum 化時の影響範囲が少し広い。
+- Phase6 の一区切りまでは、APIレスポンスの形を変えない。
+- enum 化する場合も、JSON値は既存互換を優先し、`timeAttack` や `2` のような外向きの値を安易に変えない。
+
+将来の候補:
+
+```java
+public enum GameRule {
+    NORMAL("normal"),
+    TIME_ATTACK("timeAttack")
+}
+```
+
+```java
+public enum GameMode {
+    EASY(0),
+    NORMAL(1),
+    HARD(2)
+}
+```
+
+実装する場合は、以下を合わせて確認します。
+
+- Jackson の `@JsonValue` / `@JsonCreator` で既存JSON値を維持できるか。
+- JPA の `@Converter` または明示的な変換でDB値を維持できるか。
+- `SaveScoreRequest`、`ScoreResponse`、`RankingController` のSwagger表示が分かりやすいか。
+- 既存のFE型、localStorageデータ、API変換処理と矛盾しないか。
+- 正常系、validationエラー、不正値のテストを追加できるか。
+
+タイミングとしては、「自分の記録 / 全体ランキング」の切り替えとFEテストまで終わり、Phase6 の一通りの実装が一区切りしてから行います。
+
 ### Apache Commons
 
 このプロジェクトでは、現場でよく使われる補助ライブラリとして以下を入れています。
