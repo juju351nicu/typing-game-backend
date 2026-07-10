@@ -2,6 +2,7 @@ package jp.clip.typinggame.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -34,17 +35,20 @@ public class SaveScoreRequest {
 
     /** クリアタイムです。 */
     @JsonProperty("time")
+    @Schema(description = "クリアタイム", example = "00:00:28.00")
     @NotBlank(message = "クリアタイムを入力してください。")
     private String time;
 
     /** ゲームスコアです。 */
     @JsonProperty("score")
+    @Schema(description = "ゲームスコア", example = "12")
     @NotNull(message = "スコアを入力してください。")
     @Min(value = 0, message = "スコアは0以上で入力してください。")
     private Integer score;
 
     /** 難易度を表すモード値です。 */
     @JsonProperty("mode")
+    @Schema(description = "難易度を表すモード値。0: Easy、1: Normal、2: Hard", example = "2")
     @NotNull(message = "難易度を入力してください。")
     @Min(value = 0, message = "難易度は0以上で入力してください。")
     @Max(value = 2, message = "難易度は2以下で入力してください。")
@@ -52,34 +56,40 @@ public class SaveScoreRequest {
 
     /** ゲームルールです。 */
     @JsonProperty("gameRule")
+    @Schema(description = "ゲームルール。normal または timeAttack", example = "timeAttack")
     @NotBlank(message = "ゲームルールを入力してください。")
     @Pattern(regexp = "normal|timeAttack", message = "ゲームルールはnormalまたはtimeAttackを入力してください。")
     private String gameRule;
 
     /** タイムアタック時の制限時間（秒）です。 */
     @JsonProperty("timeLimitSeconds")
+    @Schema(description = "タイムアタック時の制限時間（秒）", example = "60")
     @Min(value = 30, message = "制限時間は30秒以上で入力してください。")
     @Max(value = 90, message = "制限時間は90秒以下で入力してください。")
     private Integer timeLimitSeconds;
 
     /** 1分あたりの入力文字数です。 */
     @JsonProperty("wpm")
+    @Schema(description = "1分あたりの入力文字数", example = "32")
     @Min(value = 0, message = "WPMは0以上で入力してください。")
     private Integer wpm;
 
     /** 入力の正確率です。 */
     @JsonProperty("accuracy")
+    @Schema(description = "入力の正確率", example = "96")
     @Min(value = 0, message = "正確率は0以上で入力してください。")
     @Max(value = 100, message = "正確率は100以下で入力してください。")
     private Integer accuracy;
 
     /** ミスタイプ数です。 */
     @JsonProperty("missCount")
+    @Schema(description = "ミスタイプ数", example = "2")
     @Min(value = 0, message = "ミスタイプ数は0以上で入力してください。")
     private Integer missCount;
 
     /** 正しく入力した文字数です。 */
     @JsonProperty("correctCharacterCount")
+    @Schema(description = "正しく入力した文字数", example = "80")
     @Min(value = 0, message = "正しく入力した文字数は0以上で入力してください。")
     private Integer correctCharacterCount;
 }

@@ -58,6 +58,9 @@ public class SaveScoreRequest {
 - Swagger UI は `/swagger-ui.html` で確認する。
 - OpenAPI JSON は `/v3/api-docs` で確認する。
 - Spring Securityを使う場合、Swagger関連パスは `SecurityConfig` で認証不要にする。
+- Request DTO の各フィールドには、必要に応じて `@Schema(description = "...", example = "...")` を付ける。
+- Swagger UI のRequest bodyでそのまま試せるように、`example` は正常系かつvalidationを通る値にする。
+- Javadocはコードを読む人向け、`@Schema` はSwagger UIを見る人向けとして使い分ける。
 
 ### 例外レスポンス
 
