@@ -24,7 +24,7 @@ import lombok.AllArgsConstructor;
  */
 @Schema(description = "ゲームルール", enumAsRef = true)
 @AllArgsConstructor
-public enum GameRuleEnum implements CodeEnum {
+public enum GameRuleEnum implements CodeEnum<String> {
 
     /** 通常モードです。 */
     NORMAL("normal", "通常モード"),

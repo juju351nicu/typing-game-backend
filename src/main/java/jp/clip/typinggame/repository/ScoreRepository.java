@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import jp.clip.typinggame.entity.Score;
 import jp.clip.typinggame.entity.User;
+import jp.clip.typinggame.enums.GameModeEnum;
 import jp.clip.typinggame.enums.GameRuleEnum;
 
 /**
@@ -54,7 +55,7 @@ public interface ScoreRepository extends JpaRepository<Score, Long> {
             ORDER BY score.score DESC, score.time ASC, score.createdAt DESC
             """)
     List<Score> findRankings(
-            @Param("mode") Integer mode,
+            @Param("mode") GameModeEnum mode,
             @Param("gameRule") GameRuleEnum gameRule,
             @Param("timeLimitSeconds") Integer timeLimitSeconds,
             Pageable pageable);

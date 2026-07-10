@@ -13,7 +13,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jp.clip.typinggame.converter.GameModeEnumConverter;
 import jp.clip.typinggame.converter.GameRuleEnumConverter;
+import jp.clip.typinggame.enums.GameModeEnum;
 import jp.clip.typinggame.enums.GameRuleEnum;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -52,9 +54,10 @@ public class Score {
     @Column(nullable = false)
     private Integer score;
 
-    /** 難易度を表すモード値です。 */
+    /** 難易度を表すモード値です。DBには0 / 1 / 2の数値で保存します。 */
+    @Convert(converter = GameModeEnumConverter.class)
     @Column(nullable = false)
-    private Integer mode;
+    private GameModeEnum mode;
 
     /** ゲームルールです。DBにはnormal / timeAttackのキー値で保存します。 */
     @Convert(converter = GameRuleEnumConverter.class)

@@ -218,8 +218,8 @@ src/main/resources/db/migration/V1__create_initial_schema.sql
 
 ## mode / gameRule の enum 化方針
 
-`gameRule` は `GameRuleEnum` として enum 化済みです。
-`mode` は、既存の数値仕様とFE側の影響範囲が広いため、別タイミングで検討します。
+`gameRule` は `GameRuleEnum`、`mode` は `GameModeEnum` として enum 化済みです。
+どちらもAPIとDBの外向き値は既存仕様を維持します。
 
 現在の外向きAPI値:
 
@@ -232,8 +232,8 @@ src/main/resources/db/migration/V1__create_initial_schema.sql
 
 現時点の判断:
 
-- `gameRule` は `normal` / `timeAttack` のように候補値が少ないため、先に enum 化した。
-- `mode` は `0` / `1` / `2` の数値でFE、API、DBがつながっているため、enum 化時の影響範囲が少し広い。
+- `gameRule` は `normal` / `timeAttack` の文字列キーを維持したまま enum 化した。
+- `mode` は `0` / `1` / `2` の数値キーを維持したまま enum 化した。
 - Phase6 の一区切りまでは、APIレスポンスの形を変えない。
 - enum 化する場合も、JSON値は既存互換を優先し、`timeAttack` や `2` のような外向きの値を安易に変えない。
 
@@ -241,33 +241,48 @@ src/main/resources/db/migration/V1__create_initial_schema.sql
 
 ```text
 src/main/java/jp/clip/typinggame/enums/CodeEnum.java
+src/main/java/jp/clip/typinggame/enums/GameModeEnum.java
 src/main/java/jp/clip/typinggame/enums/GameRuleEnum.java
+src/main/java/jp/clip/typinggame/converter/GameModeEnumConverter.java
 src/main/java/jp/clip/typinggame/converter/GameRuleEnumConverter.java
+```
+
+`CodeEnum` は、文字列キーと数値キーの両方を扱えるようにジェネリクスを使います。
+
+```java
+public interface CodeEnum<T> {
+
+    T getKey();
+
+    String getValue();
+}
 ```
 
 `GameRuleEnum` は、Java内部では enum として扱い、APIとDBでは既存互換の文字列キーを使います。
 
 ```java
-public enum GameRuleEnum implements CodeEnum {
+public enum GameRuleEnum implements CodeEnum<String> {
     NORMAL("normal", "通常モード"),
     TIME_ATTACK("timeAttack", "タイムアタック")
 }
 ```
 
+`GameModeEnum` は、Java内部では enum として扱い、APIとDBでは既存互換の数値キーを使います。
+
+```java
+public enum GameModeEnum implements CodeEnum<Integer> {
+    EASY(0, "Easy"),
+    NORMAL(1, "Normal"),
+    HARD(2, "Hard")
+}
+```
+
 `GameRuleEnumConverter` は、Entity の `GameRuleEnum` と DB の `game_rule` カラム値を相互変換します。
+`GameModeEnumConverter` は、Entity の `GameModeEnum` と DB の `mode` カラム値を相互変換します。
 
 ```text
 GameRuleEnum.TIME_ATTACK <-> "timeAttack"
-```
-
-将来の候補:
-
-```java
-public enum GameMode {
-    EASY(0),
-    NORMAL(1),
-    HARD(2)
-}
+GameModeEnum.HARD <-> 2
 ```
 
 現場で使っている enum 実装を参考にする場合は、特定プロジェクト名や業務名を持ち込まず、以下の「共通enumインターフェース方式」を学習材料にします。
@@ -287,9 +302,9 @@ typingGame で導入する場合は、現場固有の名前を使わず、この
 候補:
 
 ```java
-public interface CodeEnum {
+public interface CodeEnum<T> {
 
-    String getKey();
+    T getKey();
 
     String getValue();
 }
@@ -300,7 +315,7 @@ public interface CodeEnum {
 ```java
 @Schema(description = "ゲームルール", enumAsRef = true)
 @AllArgsConstructor
-public enum GameRuleEnum implements CodeEnum {
+public enum GameRuleEnum implements CodeEnum<String> {
 
     /** 通常モード */
     NORMAL("normal", "通常モード"),
@@ -324,14 +339,14 @@ public enum GameRuleEnum implements CodeEnum {
 ```
 
 このパターンで `mode` / `gameRule` を enum 化すると、APIの外向き値を維持したまま、Java内部では型安全に扱いやすくなります。
-一方で、Request DTO、Response DTO、Entity、JPA変換、Swagger、FE型の影響範囲が出るため、`mode` は別の小さな変更として扱います。
+Request DTO、Response DTO、Entity、JPA変換、Swagger、FE型の影響範囲が出るため、変更時はテストとSwagger確認をセットで行います。
 
 保守性の結論:
 
 - 共通enumインターフェース方式には堅牢性がある。
 - ただし、null処理、JSONからenumへの逆変換、DB値との変換、命名ルールまでセットで決めると、さらに保守しやすい。
-- typingGame では、まず `gameRule` だけを小さく enum 化して試した。
-- `mode` は `0` / `1` / `2` の数値でFE、API、DBに広く関係しているため、`gameRule` の確認後に検討する。
+- typingGame では、まず `gameRule` を小さく enum 化して試した。
+- その後、`mode` も `0` / `1` / `2` の数値仕様を維持したまま enum 化した。
 
 `gameRule` は、意味が読める文字列を外向きのキーとして維持します。
 
@@ -343,7 +358,7 @@ TIME_ATTACK("timeAttack", "タイムアタック")
 `NORMAL("1", "normal")` のように数字コードへ寄せると、APIやDBの値を見ただけでは意味が分かりにくくなります。
 すでに `normal` / `timeAttack` でFEとAPIがつながっているため、`gameRule` は文字列キーのままにします。
 
-`mode` を enum 化する場合は、既存の数値仕様に合わせます。
+`mode` は、既存の数値仕様に合わせます。
 
 ```java
 EASY(0, "Easy"),
@@ -361,7 +376,8 @@ HARD(2, "Hard")
 - 既存のFE型、localStorageデータ、API変換処理と矛盾しないか。
 - 正常系、validationエラー、不正値のテストを追加できるか。
 
-`mode` を enum 化するタイミングは、「自分の記録 / 全体ランキング」の切り替えとFEテストまで終わり、Phase6 の一通りの実装が一区切りしてから検討します。
+FE側は現時点では `mode: number` のままです。
+APIレスポンスもリクエストも `0` / `1` / `2` の数値を維持しているため、FEのlocalStorageデータや表示変換を変更しなくても動作します。
 
 ### JPA @Converter と MapStruct の違い
 
@@ -413,7 +429,7 @@ Score -> ScoreResponse
 このプロジェクトでの当面の方針:
 
 - まだDTOとEntity変換は小さいため、まずはService内の `toScoreEntity` / `toResponse` で手書きする。
-- `gameRule` はEntityでenumとして持ち、DB値との変換に JPA `@Converter` を使う。
+- `gameRule` と `mode` はEntityでenumとして持ち、DB値との変換に JPA `@Converter` を使う。
 - DTO / Entity / Response の変換が増えて手書きが読みづらくなった段階で、MapStruct導入を検討する。
 - `@Converter` はDB境界、MapStructはJavaオブジェクト境界、と分けて考える。
 

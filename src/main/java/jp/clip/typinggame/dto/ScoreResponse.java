@@ -2,6 +2,7 @@ package jp.clip.typinggame.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import jp.clip.typinggame.enums.GameModeEnum;
 import jp.clip.typinggame.enums.GameRuleEnum;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,7 +39,7 @@ public class ScoreResponse {
 
     /** 難易度を表すモード値です。 */
     @JsonProperty("mode")
-    private Integer mode;
+    private GameModeEnum mode;
 
     /** ゲームルールです。 */
     @JsonProperty("gameRule")

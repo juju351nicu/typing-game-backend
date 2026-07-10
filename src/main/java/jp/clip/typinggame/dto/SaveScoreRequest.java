@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jp.clip.typinggame.enums.GameModeEnum;
 import jp.clip.typinggame.enums.GameRuleEnum;
 import lombok.Getter;
 import lombok.Setter;
@@ -48,11 +49,9 @@ public class SaveScoreRequest {
 
     /** 難易度を表すモード値です。 */
     @JsonProperty("mode")
-    @Schema(description = "難易度を表すモード値。0: Easy、1: Normal、2: Hard", example = "2")
+    @Schema(description = "難易度を表すモード値。0: Easy、1: Normal、2: Hard", example = "2", implementation = GameModeEnum.class)
     @NotNull(message = "難易度を入力してください。")
-    @Min(value = 0, message = "難易度は0以上で入力してください。")
-    @Max(value = 2, message = "難易度は2以下で入力してください。")
-    private Integer mode;
+    private GameModeEnum mode;
 
     /** ゲームルールです。 */
     @JsonProperty("gameRule")
