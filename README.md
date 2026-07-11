@@ -96,6 +96,42 @@ MySQLを停止したい場合は以下を実行します。
 mysql.server stop
 ```
 
+## prod profile の設定
+
+本番公開前の設定分離として、`application-prod.yml` を追加しています。
+通常のローカル起動では使わず、`SPRING_PROFILES_ACTIVE=prod` を指定した場合だけ有効になります。
+
+prod profileでは、以下の環境変数を使います。
+
+| 環境変数 | 用途 | 必須 |
+| --- | --- | --- |
+| `DB_URL` | MySQL接続URL | 必須 |
+| `DB_USERNAME` | DBユーザー | 必須 |
+| `DB_PASSWORD` | DBパスワード | 必須 |
+| `JWT_SECRET` | JWT署名用secret | 必須 |
+| `JWT_EXPIRES_IN_SECONDS` | JWT有効期限（秒） | 任意 |
+| `JWT_ISSUER` | JWT issuer | 任意 |
+| `APP_CORS_ALLOWED_ORIGINS` | CORS許可Origin | 必須 |
+| `SERVER_ADDRESS` | bind address | 任意 |
+| `SERVER_PORT` | 起動ポート | 任意 |
+| `SPRINGDOC_ENABLED` | Swagger UI / OpenAPI JSONを有効にするか | 任意 |
+
+ローカルでprod profileの設定値確認だけ行う例です。
+
+```bash
+export SPRING_PROFILES_ACTIVE=prod
+export DB_URL="jdbc:mysql://localhost:3306/typing_game?serverTimezone=Asia/Tokyo&useUnicode=true&characterEncoding=UTF-8"
+export DB_USERNAME="root"
+export DB_PASSWORD=""
+export JWT_SECRET="local-prod-check-secret-key-please-change-32bytes"
+export APP_CORS_ALLOWED_ORIGINS="http://localhost:8081"
+export SPRINGDOC_ENABLED=true
+./mvnw spring-boot:run
+```
+
+これは本番公開用の値ではなく、prod profileが環境変数で起動できるかを見るためのローカル確認用です。
+実際の本番では、`root` ユーザーやローカル確認用の `JWT_SECRET` は使いません。
+
 ## Swagger UI
 
 API仕様は Swagger UI で確認できます。
@@ -394,7 +430,7 @@ Status:
 - GitHub PagesからバックエンドAPIへ接続する前提で設定を整理する。
 - 起動手順、環境変数、確認手順をREADME/docsにまとめる。
 
-Status: 着手準備として `docs/phase9-production-readiness-plan.md` に、本番公開前に整理する環境変数、CORS、JWT secret、Swagger公開範囲、セッションCookie方式の扱いをまとめています。
+Status: `application-prod.yml` を追加し、本番公開前に整理する環境変数、CORS、JWT secret、Swagger公開範囲、セッションCookie方式の扱いを `docs/phase9-production-readiness-plan.md` にまとめています。
 
 ### Phase 10: EC2デプロイ学習
 
