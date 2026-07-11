@@ -9,14 +9,16 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * フロントエンドからAPIを呼び出すためのCORS設定です。
  */
 @Configuration
 @ConfigurationProperties(prefix = "app.cors")
-@Data
+@Getter
+@Setter
 public class CorsConfig {
 
     /** APIアクセスを許可するOriginの一覧です。 */
@@ -30,6 +32,7 @@ public class CorsConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+        // application.yml の app.cors.allowed-origins から許可Originを切り替えます。
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type", "Accept", "Authorization", "X-Requested-With"));
