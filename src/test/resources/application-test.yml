@@ -16,3 +16,9 @@ spring:
     locations:
       - classpath:db/migration
       - classpath:db/vendor/{vendor}
+
+app:
+  jwt:
+    secret: test-jwt-secret-key-for-typing-game-backend-32bytes
+    expires-in-seconds: 3600
+    issuer: typing-game-backend-test

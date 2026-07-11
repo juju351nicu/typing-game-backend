@@ -12,6 +12,7 @@ typingGame のバックエンドAPIです。
 - Spring Web
 - Spring Data JPA
 - Spring Security
+- Spring Security OAuth2 Resource Server / JOSE
 - springdoc-openapi / Swagger UI
 - Bean Validation
 - Flyway
@@ -206,8 +207,9 @@ POST /api/auth/login
 ```
 
 登録済みユーザーのログインを行います。
-ログインに成功すると、Spring Security の認証情報をHTTPセッションに保存します。
-フロントエンドから呼び出す場合は、Cookieを送受信できるように `credentials: "include"` を付ける想定です。
+ログインに成功すると、Spring Security の認証情報をHTTPセッションに保存し、JWTアクセストークンも返します。
+JWT移行途中のため、現時点ではセッションCookie方式も残しています。
+フロントエンドからセッション方式で呼び出す場合は、Cookieを送受信できるように `credentials: "include"` を付ける想定です。
 
 リクエスト例:
 
@@ -215,6 +217,20 @@ POST /api/auth/login
 {
   "loginEmail": "user@example.com",
   "password": "password123"
+}
+```
+
+レスポンス例:
+
+```json
+{
+  "user": {
+    "id": 1,
+    "loginEmail": "user@example.com"
+  },
+  "accessToken": "xxxxx.yyyyy.zzzzz",
+  "tokenType": "Bearer",
+  "expiresIn": 3600
 }
 ```
 
@@ -291,6 +307,8 @@ limit=20
 - ログインAPIはセッションCookie方式で開始するため、FE側のAPI呼び出しでは `credentials: "include"` を使う。
 - ログイン画面は todo-frontend の `Login.vue` を参考にする。ただし typingGame はセッションCookie方式のため、token/localStorage保存の実装はそのまま流用しない。
 - APIエラーは `fieldErrors` 形式で返し、FE側は同じ形式でエラー表示する。
+- JWT移行後は、ログイン成功時の `accessToken` をFEの `sessionStorage` に保持し、`Authorization: Bearer {token}` でログインユーザー向けAPIを呼び出す。
+- JWT移行中はセッションCookie方式を残し、既存の結合確認済みの動作を壊さないように進める。
 
 ## 今後の実装順
 
@@ -337,6 +355,14 @@ docs/jwt-migration-plan.md
 - refresh token はaccess token方式が安定してから検討する。
 - token保存場所、期限切れ、ログアウト時の破棄、refresh tokenを使うかは実装前に決める。
 - EC2公開やGitHub Pages連携の前に、ローカルでJWT認証の正常系、期限切れ、未ログインエラーを確認する。
+
+Status:
+
+- BE側でJWT依存、JWT設定、JWT生成サービスを追加済み。
+- `POST /api/auth/login` は `accessToken`、`tokenType`、`expiresIn` を返す。
+- 既存のセッションCookie方式はまだ残している。
+- 次はFE側で `accessToken` を `sessionStorage` に保存し、`fetchClient.ts` から `Authorization` ヘッダーを付ける。
+- その後、BE側で `Authorization: Bearer {token}` から認証情報を復元する。
 
 ### Phase 9: 本番公開準備
 

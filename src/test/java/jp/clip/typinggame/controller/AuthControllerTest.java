@@ -74,6 +74,9 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.id").isNumber())
                 .andExpect(jsonPath("$.user.loginEmail").value("user@example.com"))
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(3600))
                 .andReturn();
 
         MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);

@@ -38,6 +38,9 @@ public class AuthService {
     /** 認証情報からログイン中ユーザーを取得するサービスです。 */
     private final CurrentUserService currentUserService;
 
+    /** JWTアクセストークンを生成するサービスです。 */
+    private final JwtTokenService jwtTokenService;
+
     /**
      * ログイン認証を行い、認証情報をHTTPセッションに保存します。
      *
@@ -67,6 +70,9 @@ public class AuthService {
 
         LoginResponse response = new LoginResponse();
         response.setUser(userService.toResponse(user));
+        response.setAccessToken(jwtTokenService.generateAccessToken((LoginUserDetails) authentication.getPrincipal()));
+        response.setTokenType("Bearer");
+        response.setExpiresIn(jwtTokenService.getExpiresInSeconds());
         return response;
     }
 
