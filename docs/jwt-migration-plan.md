@@ -144,8 +144,10 @@ typingGameでは直接流用せず、以下の考え方を参考にします。
 - `JwtLoginUserDetailsConverter` で検証済みJWTから `LoginUserDetails` を復元。
 - `Authorization: Bearer {token}` で `/api/auth/me` と `/api/me/scores` を呼べる。
 - 不正なBearer tokenでも `fieldErrors` 形式の401を返す。
+- Swagger UIのAuthorizeからBearer tokenを設定できる。
 - `AuthControllerTest` でログインレスポンスにJWT項目が含まれることを確認。
 - `AuthControllerTest` と `MyScoreControllerTest` でBearer token認証を確認。
+- `OpenApiConfigTest` でOpenAPI JSONにBearer認証定義が含まれることを確認。
 
 現時点の役割:
 
@@ -318,7 +320,7 @@ src/views/LoginPage.vue
 8. BEでJWTから認証情報を復元する。完了。
 9. `/api/me/**` をJWT認証で保護する。完了。
 10. 未ログイン、期限切れ、改ざんtokenのエラーレスポンスを確認する。一部完了。
-11. BE / FEのテストを追加する。
+11. BE / FEのテストを追加する。一部完了。
 12. セッションCookie方式を残すか削除するか判断する。
 
 ## 完了条件

@@ -117,6 +117,18 @@ http://localhost:8091/v3/api-docs
 ```
 
 Spring Securityを使っているため、Swagger関連のパスは `SecurityConfig` で認証不要にしています。
+ログインユーザー向けAPIをSwagger UIから試す場合は、ログインAPIの `accessToken` をAuthorizeへ設定します。
+
+Swagger UIでBearer認証を使う手順:
+
+1. `POST /api/users` でユーザー登録する。
+2. `POST /api/auth/login` でログインする。
+3. レスポンスの `accessToken` をコピーする。
+4. Swagger UI右上の `Authorize` を開く。
+5. `bearerAuth` に `accessToken` の値だけを貼り付ける。
+6. `GET /api/auth/me` や `POST /api/me/scores` を実行する。
+
+`Bearer ` はSwagger UI側が付けるため、入力欄にはtoken文字列だけを入れます。
 
 ## テスト
 
@@ -367,7 +379,8 @@ Status:
 - BE側で `Authorization: Bearer {token}` から `LoginUserDetails` を復元する実装は完了。
 - 既存のセッションCookie方式は移行期間として残している。
 - 不正Bearer token時も `fieldErrors` 形式の401を返すことを確認済み。
-- 次はtoken期限切れ時の専用表示、SwaggerでのBearer認証確認、セッションCookie方式を残すかの判断を進める。
+- Swagger UIでBearer tokenを入力できるOpenAPI設定を追加済み。
+- 次はtoken期限切れ時の専用表示、セッションCookie方式を残すかの判断を進める。
 
 ### Phase 9: 本番公開準備
 
