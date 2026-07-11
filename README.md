@@ -323,7 +323,10 @@ limit=20
 - ログイン画面は todo-frontend の `Login.vue` を参考にする。ただし typingGame はセッションCookie方式のため、token/localStorage保存の実装はそのまま流用しない。
 - APIエラーは `fieldErrors` 形式で返し、FE側は同じ形式でエラー表示する。
 - JWT移行後は、ログイン成功時の `accessToken` をFEの `sessionStorage` に保持し、`Authorization: Bearer {token}` でログインユーザー向けAPIを呼び出す。
-- JWT移行中はセッションCookie方式を残し、既存の結合確認済みの動作を壊さないように進める。
+- JWT移行中はセッションCookie方式を移行期間とローカル学習用として残し、既存の結合確認済みの動作を壊さないように進める。
+- 最終的な主方式はJWT Bearer認証に寄せる。
+- Cookie無効時でもSpring Security自体が使えなくなるわけではない。ただし、セッションCookie方式はログイン継続が難しくなるため、FE/BE別ホスト構成ではJWT方式を優先する。
+- localStorageは認証方式ではなく、FE側の未ログインスコア保存・API失敗時fallbackとして扱う。
 
 ## 今後の実装順
 
@@ -377,10 +380,10 @@ Status:
 - `POST /api/auth/login` は `accessToken`、`tokenType`、`expiresIn` を返す。
 - FE側で `accessToken` を `sessionStorage` に保存し、`fetchClient.ts` から `Authorization` ヘッダーを付ける実装は完了。
 - BE側で `Authorization: Bearer {token}` から `LoginUserDetails` を復元する実装は完了。
-- 既存のセッションCookie方式は移行期間として残している。
+- 既存のセッションCookie方式は移行期間とローカル学習用として残している。
 - 不正Bearer token時も `fieldErrors` 形式の401を返すことを確認済み。
 - Swagger UIでBearer tokenを入力できるOpenAPI設定を追加済み。
-- 次はtoken期限切れ時の専用表示、セッションCookie方式を残すかの判断を進める。
+- 最終的な主方式はJWT Bearer認証に寄せる。次は本番公開準備、またはセッションCookie方式を削除するタイミングの判断を進める。
 
 ### Phase 9: 本番公開準備
 

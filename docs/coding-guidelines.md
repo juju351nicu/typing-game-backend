@@ -86,8 +86,13 @@ public class SaveScoreRequest {
 - パスワードは平文保存しない。
 - パスワード保存時は `BCryptPasswordEncoder` で暗号化する。
 - 認証ユーザーの取得は `UserDetailsService` を通す。
-- まずはセッションCookie方式で開始し、JWTは必要になった段階で検討する。
-- FEからログイン後APIを呼ぶ場合は、Cookie送受信のため `credentials: "include"` を付ける。
+- 最終的な主方式はJWT Bearer認証に寄せる。
+- セッションCookie方式は、移行期間とローカル学習用の比較対象として残す。
+- FEからセッションCookie方式でログイン後APIを呼ぶ場合は、Cookie送受信のため `credentials: "include"` を付ける。
+- Cookieが無効なブラウザでは、セッションCookie方式のログイン継続は難しくなる。ただし、Spring Security自体が使えなくなるわけではない。
+- Cookie無効時でも、`Authorization: Bearer {token}` を送るJWT方式であればSpring SecurityのResource Server認証を利用できる。
+- `localStorage` は認証方式ではなく、未ログインユーザーのスコア保存・API失敗時のfallback用途として扱う。
+- JWT access token はFEの `sessionStorage` に保存する方針とし、`localStorage` へは保存しない。
 - todo-backend のSecurity設定を参考にするが、`NoOpPasswordEncoder` は使わない。
 
 ### Swagger / OpenAPI
