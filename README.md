@@ -394,6 +394,8 @@ Status:
 - GitHub PagesからバックエンドAPIへ接続する前提で設定を整理する。
 - 起動手順、環境変数、確認手順をREADME/docsにまとめる。
 
+Status: 着手準備として `docs/phase9-production-readiness-plan.md` に、本番公開前に整理する環境変数、CORS、JWT secret、Swagger公開範囲、セッションCookie方式の扱いをまとめています。
+
 ### Phase 10: EC2デプロイ学習
 
 目安は1〜2週間です。
