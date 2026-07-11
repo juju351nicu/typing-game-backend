@@ -32,6 +32,7 @@ public class JwtConfig {
      */
     @Bean
     JwtEncoder jwtEncoder(JwtProperties properties) {
+        // ログイン成功時のJWT発行では、同じ秘密鍵でHMAC-SHA256署名を行います。
         return new NimbusJwtEncoder(new ImmutableSecret<>(createSecretKey(properties)));
     }
 
@@ -43,6 +44,7 @@ public class JwtConfig {
      */
     @Bean
     JwtDecoder jwtDecoder(JwtProperties properties) {
+        // API呼び出し時のBearer token検証でも、発行時と同じ秘密鍵・アルゴリズムを使います。
         return NimbusJwtDecoder.withSecretKey(createSecretKey(properties))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
@@ -57,6 +59,7 @@ public class JwtConfig {
     private SecretKey createSecretKey(JwtProperties properties) {
         String secret = properties.getSecret();
         if (StringUtils.length(secret) < 32) {
+            // HS256の署名鍵が短すぎると安全性が落ちるため、ローカルでも最低長をそろえます。
             throw new IllegalStateException("JWT secretは32文字以上で設定してください。");
         }
         return new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");

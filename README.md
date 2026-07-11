@@ -251,6 +251,7 @@ GET /api/auth/me
 
 ログイン中のユーザー情報を取得します。
 未ログインの場合は `401 Unauthorized` になります。
+移行期間中は、セッションCookieまたは `Authorization: Bearer {token}` のどちらでも認証できます。
 
 ### ユーザー別スコア保存
 
@@ -260,6 +261,7 @@ POST /api/me/scores
 
 ログイン中ユーザーに紐づくスコアを保存します。
 未ログインの場合は `401 Unauthorized` になります。
+移行期間中は、セッションCookieまたは `Authorization: Bearer {token}` のどちらでも認証できます。
 
 リクエスト内容は `POST /api/scores` と同じです。
 
@@ -271,6 +273,7 @@ GET /api/me/scores
 
 ログイン中ユーザーに紐づくスコア一覧を取得します。
 未ログインの場合は `401 Unauthorized` になります。
+移行期間中は、セッションCookieまたは `Authorization: Bearer {token}` のどちらでも認証できます。
 
 ### ランキング取得
 
@@ -360,9 +363,11 @@ Status:
 
 - BE側でJWT依存、JWT設定、JWT生成サービスを追加済み。
 - `POST /api/auth/login` は `accessToken`、`tokenType`、`expiresIn` を返す。
-- 既存のセッションCookie方式はまだ残している。
-- 次はFE側で `accessToken` を `sessionStorage` に保存し、`fetchClient.ts` から `Authorization` ヘッダーを付ける。
-- その後、BE側で `Authorization: Bearer {token}` から認証情報を復元する。
+- FE側で `accessToken` を `sessionStorage` に保存し、`fetchClient.ts` から `Authorization` ヘッダーを付ける実装は完了。
+- BE側で `Authorization: Bearer {token}` から `LoginUserDetails` を復元する実装は完了。
+- 既存のセッションCookie方式は移行期間として残している。
+- 不正Bearer token時も `fieldErrors` 形式の401を返すことを確認済み。
+- 次はtoken期限切れ時の専用表示、SwaggerでのBearer認証確認、セッションCookie方式を残すかの判断を進める。
 
 ### Phase 9: 本番公開準備
 

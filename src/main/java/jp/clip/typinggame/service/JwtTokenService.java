@@ -32,9 +32,11 @@ public class JwtTokenService {
      * @return JWTアクセストークン
      */
     public String generateAccessToken(LoginUserDetails userDetails) {
+        // 現在時刻を基準に、発行日時と有効期限をJWT claimへ入れます。
         Instant issuedAt = Instant.now();
         Instant expiresAt = issuedAt.plusSeconds(jwtProperties.getExpiresInSeconds());
 
+        // subjectはログインメールアドレス、userIdはアプリ内のユーザー特定用claimとして持たせます。
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(jwtProperties.getIssuer())
                 .issuedAt(issuedAt)
@@ -43,6 +45,7 @@ public class JwtTokenService {
                 .claim("userId", userDetails.getUserId())
                 .build();
 
+        // FEへ返すtokenは、Spring SecurityのDecoderで検証できるHS256署名付きJWTにします。
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }

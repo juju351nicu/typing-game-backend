@@ -8,6 +8,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -15,6 +16,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jp.clip.typinggame.service.LoginUserDetailsService;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Spring Securityの認証・認可設定です。
@@ -26,7 +32,11 @@ import org.springframework.security.web.SecurityFilterChain;
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    /** JWTのsubjectからログインユーザー情報を復元するサービスです。 */
+    private final LoginUserDetailsService loginUserDetailsService;
 
     /**
      * APIごとの認証・認可ルールを設定します。
@@ -37,22 +47,21 @@ public class SecurityConfig {
      */
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // JWT移行中は既存のセッションCookie方式も残し、Bearer token方式と並行して動かします。
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
         http.csrf(csrf -> csrf.disable());
         http.cors(cors -> {
         });
         http.formLogin(form -> form.disable());
         http.httpBasic(basic -> basic.disable());
+        http.oauth2ResourceServer(oauth2 -> oauth2
+                .authenticationEntryPoint(this::writeUnauthorizedResponse)
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(
+                        new JwtLoginUserDetailsConverter(loginUserDetailsService))));
         http.exceptionHandling(exception -> exception
-                .authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                    response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    response.getWriter().write("""
-                            {"fieldErrors":[{"errorCode":"UNAUTHORIZED","field":"","message":"ログインしてください。"}]}
-                            """);
-                }));
+                .authenticationEntryPoint(this::writeUnauthorizedResponse));
 
+        // 公開APIと認証必須APIを分け、/api/me/** などはセッションまたはJWT認証を要求します。
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -68,6 +77,27 @@ public class SecurityConfig {
                 .logoutSuccessHandler((request, response, authentication) -> response.setStatus(HttpStatus.OK.value())));
 
         return http.build();
+    }
+
+    /**
+     * 認証失敗時のレスポンスを書き込みます。
+     *
+     * @param request HTTPリクエスト
+     * @param response HTTPレスポンス
+     * @param authException 認証例外
+     * @throws java.io.IOException レスポンス書き込みに失敗した場合
+     */
+    private void writeUnauthorizedResponse(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException authException) throws java.io.IOException {
+        // FE側のエラー表示を共通化するため、セッション認証失敗もJWT認証失敗もfieldErrors形式で返します。
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write("""
+                {"fieldErrors":[{"errorCode":"UNAUTHORIZED","field":"","message":"ログインしてください。"}]}
+                """);
     }
 
     /**
