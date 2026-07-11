@@ -303,14 +303,38 @@ limit=20
 - API保存・取得に失敗しても、フロントエンド側のlocalStorage fallbackを維持する。
 - 確認結果をREADMEまたはdocsに追記する。
 
+Status: 完了。`npm run dev:api` で `http://localhost:8081` に固定してAPI有効確認し、`npm run dev` でFE単体モード確認を行いました。
+
+確認済み:
+
+- ユーザー登録、ログイン、ログイン中ユーザー取得ができる。
+- ログイン状態でゲーム結果を保存できる。
+- ユーザー別スコア一覧と全体ランキングを表示できる。
+- FE単体モードではログイン導線を表示せず、localStorage保存でゲームを継続できる。
+- API有効確認はCORS許可済みの `http://localhost:8081` で行う。
+
 ### Phase 8: JWT化
 
 目安は3日〜1週間です。
+
+詳細計画:
+
+```text
+docs/jwt-migration-plan.md
+```
 
 - ログイン成功時にJWTを発行する。
 - フロントエンドから `Authorization` ヘッダーでログインユーザー向けAPIを呼び出す。
 - HTTPセッション依存を減らし、GitHub PagesのFEと別ホストのBEを接続しやすくする。
 - ログアウト、認証切れ、未ログイン時のエラー形式を整理する。
+
+初期設計メモ:
+
+- 現在のセッションCookie方式はローカル学習用として残し、JWT化は別フェーズとして扱う。
+- JWT化後はログイン成功時にaccess tokenを返す。
+- FEは `Authorization: Bearer {token}` でログインユーザー向けAPIを呼び出す。
+- token保存場所、期限切れ、ログアウト時の破棄、refresh tokenを使うかは実装前に決める。
+- EC2公開やGitHub Pages連携の前に、ローカルでJWT認証の正常系、期限切れ、未ログインエラーを確認する。
 
 ### Phase 9: 本番公開準備
 
