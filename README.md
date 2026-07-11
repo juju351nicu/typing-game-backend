@@ -333,6 +333,8 @@ docs/jwt-migration-plan.md
 - 現在のセッションCookie方式はローカル学習用として残し、JWT化は別フェーズとして扱う。
 - JWT化後はログイン成功時にaccess tokenを返す。
 - FEは `Authorization: Bearer {token}` でログインユーザー向けAPIを呼び出す。
+- 最初はaccess tokenのみ、FE保存先は `sessionStorage` を候補にする。
+- refresh token はaccess token方式が安定してから検討する。
 - token保存場所、期限切れ、ログアウト時の破棄、refresh tokenを使うかは実装前に決める。
 - EC2公開やGitHub Pages連携の前に、ローカルでJWT認証の正常系、期限切れ、未ログインエラーを確認する。
 
