@@ -26,19 +26,19 @@ typingGame のバックエンドAPIです。
 
 ローカルでバックエンドを起動する場合は、先にMySQLを起動してDBを用意します。
 
-今後、他PCでも同じDB条件で動かせるようにするため、EC2学習へ進む前にMySQLだけDocker Composeで固定する予定です。
+他PCでも同じDB条件で動かせるようにするため、EC2学習へ進む前にMySQLだけDocker Composeで固定しています。
 この段階ではSpring Bootアプリ本体はDocker化せず、ローカルのJava/Maven起動のままDocker上のMySQLへ接続します。
 
-MySQLを起動します。
+Rancher DesktopなどでDocker CLI / Docker Composeを使える状態にしてから、MySQLコンテナを起動します。
 
 ```bash
-mysql.server start
+docker compose up -d mysql
 ```
 
-`typing_game` データベースが未作成の場合は、以下を実行します。
+Spring BootをDocker上のMySQLへ接続して起動します。
 
 ```bash
-mysql -u root < src/main/resources/create-database.sql
+./mvnw spring-boot:run
 ```
 
 テーブル作成と変更は Flyway migration で管理します。
@@ -53,26 +53,30 @@ src/main/resources/db/migration
 既存のローカルDBに `flyway_schema_history` がない場合は、`baseline-on-migrate` により現在のDBを基準化してからmigrationを実行します。
 手元DBのテーブル定義が古く、JPA validate でカラム不足などが出る場合は、学習用DBを作り直すか、足りないカラムを手動で追加してください。
 
+既存のローカルMySQLを使う場合は、これまで通り `mysql.server start` と `mysql -u root < src/main/resources/create-database.sql` で起動できます。
+ただし、Docker MySQLとローカルMySQLはどちらも標準で `3306` 番ポートを使うため、同時起動は避けてください。
+ローカルMySQLを使う場合は、必要に応じて `DB_USERNAME` / `DB_PASSWORD` を指定して起動します。
+
 ## ローカル起動手順
 
 基本的には以下の順番で起動確認します。
 
-1. MySQLを起動する。
-2. 初回だけDBを作成する。
+1. Rancher Desktopを起動する。
+2. Docker ComposeでMySQLを起動する。
 3. Spring Bootを起動する。
 4. Swagger UIを開く。
 5. 必要に応じてcurlでAPI疎通確認する。
 
-MySQLを起動します。
+Docker ComposeでMySQLを起動します。
 
 ```bash
-mysql.server start
+docker compose up -d mysql
 ```
 
-初回だけDBを作成します。
+状態を確認します。
 
 ```bash
-mysql -u root < src/main/resources/create-database.sql
+docker compose ps
 ```
 
 Spring Bootを起動します。
@@ -96,7 +100,13 @@ curl http://localhost:8091/api/scores
 MySQLを停止したい場合は以下を実行します。
 
 ```bash
-mysql.server stop
+docker compose down
+```
+
+DBデータも含めて作り直したい場合だけ、volumeも削除します。
+
+```bash
+docker compose down -v
 ```
 
 ## prod profile の設定
@@ -445,7 +455,7 @@ Status: 完了。`application-prod.yml` を追加し、本番公開前に整理�
 - Rancher Desktopを使う場合は、Docker CLI / Docker Composeを扱いやすくするために `dockerd` / `moby` を優先する。
 - `jib-maven-plugin` は、Spring Bootアプリ本体をDocker化する段階まで後回しにする。
 
-Status: 次に着手する小タスク。EC2へ入る前にDB環境差を減らし、その後Phase10へ進む方針です。
+Status: 実装済み。`compose.yml` でMySQL 8.4を固定し、Spring BootはローカルJava/Maven起動のまま `typing_game_app` ユーザーで接続します。開発デフォルトもDocker MySQL用の接続情報に寄せています。
 
 ### Phase 10: EC2デプロイ学習
 

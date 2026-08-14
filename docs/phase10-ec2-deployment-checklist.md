@@ -76,15 +76,33 @@ Nginx
 
 ```text
 compose.yml
-MySQL 8.4 または 8.0 系のどちらかに固定
+MySQL 8.4に固定
 DB名 typing_game
 アプリ用ユーザー typing_game_app
 永続化volume
-必要なら初期化SQL
 ```
 
 この段階では、Spring Bootアプリ本体のDocker化はしません。
 DBだけをコンテナ化し、アプリはこれまで通り以下で起動します。
+
+```bash
+docker compose up -d mysql
+./mvnw spring-boot:run
+```
+
+Docker MySQLを停止する場合:
+
+```bash
+docker compose down
+```
+
+DBデータも含めて初期化する場合だけ、volumeも削除します。
+
+```bash
+docker compose down -v
+```
+
+この段階でアプリ本体はDocker化せず、以下のローカルJava/Maven起動を維持します。
 
 ```bash
 ./mvnw spring-boot:run
