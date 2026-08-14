@@ -6,6 +6,7 @@ Phase10では、typing-game-backendをEC2上で動かし、GitHub Pagesで公開
 
 最初のゴールは「本番運用を完成させること」ではなく、以下を小さく確認することです。
 
+- EC2へ進む前に、ローカルMySQLのバージョン差をDocker Composeで固定できる。
 - EC2上でSpring Bootアプリを起動できる。
 - `prod` profileを環境変数で起動できる。
 - Nginx経由でAPIへアクセスできる。
@@ -32,6 +33,7 @@ Phase10では、typing-game-backendをEC2上で動かし、GitHub Pagesで公開
 EC2を触る前に、以下を決めます。
 
 ```text
+0. EC2前に、ローカルMySQLをDocker Composeで固定する
 1. DBはEC2内MySQLから始めるか、RDSを使うか
 2. ドメインなしでEC2のPublic DNS / Elastic IPから始めるか
 3. HTTPS化をどの段階で入れるか
@@ -42,6 +44,12 @@ EC2を触る前に、以下を決めます。
 学習の順番としては、最初は以下が扱いやすいです。
 
 ```text
+EC2前の小タスク
+Docker ComposeでMySQLを固定
+Spring BootはローカルJava/Maven起動のまま接続
+Flyway migrationとAPI起動確認
+
+その後
 EC2 1台
 Spring Boot
 MySQL
@@ -50,6 +58,50 @@ Nginx
 あとからHTTPS
 あとからRDS / 独自ドメイン / 自動デプロイ
 ```
+
+## EC2前のDocker Compose MySQL固定
+
+他PCで開発する場合、ローカルに入っているMySQLのバージョン、初期設定、文字コード、認証方式が違う可能性があります。
+
+そのため、EC2へ入る前に、まずMySQLだけDocker Composeで固定します。
+
+目的:
+
+- 他PCでも同じMySQLバージョンで起動できるようにする。
+- ローカルMySQLのインストール差分に引っ張られないようにする。
+- Spring Bootアプリ本体は、まずローカルのJava/Maven起動のままにする。
+- Flyway migration、JPA validate、Swagger疎通確認を同じDB条件で確認する。
+
+最初の範囲:
+
+```text
+compose.yml
+MySQL 8.4 または 8.0 系のどちらかに固定
+DB名 typing_game
+アプリ用ユーザー typing_game_app
+永続化volume
+必要なら初期化SQL
+```
+
+この段階では、Spring Bootアプリ本体のDocker化はしません。
+DBだけをコンテナ化し、アプリはこれまで通り以下で起動します。
+
+```bash
+./mvnw spring-boot:run
+```
+
+Rancher Desktopを使う場合:
+
+- 正式名称は Rancher Desktop。
+- 現場で使われることがあるため、Docker Desktop以外の選択肢として触っておく価値がある。
+- Docker CLI / Docker Compose を使う場合は、Rancher Desktop側で `dockerd` / `moby` を選ぶと扱いやすい。
+- `containerd` を選ぶ場合は `nerdctl` を使う場面があるため、最初は混乱しやすい。
+
+`jib-maven-plugin` の扱い:
+
+- JibはJavaアプリのコンテナイメージ作成には便利。
+- ただし、最初の目的はMySQLバージョン差の吸収なので、Jibはまだ入れない。
+- Spring Bootアプリ本体をDocker化する段階、またはCIでimage build/pushしたくなった段階で検討する。
 
 ## AWS側の事前確認
 
@@ -86,7 +138,7 @@ Spring Boot 8091
 - unzip / curl など最低限の確認コマンド
 
 Spring Bootは最初はjarを手動配置して起動確認します。
-Docker化やGitHub Actionsからの自動デプロイは、最初の疎通確認が終わってからで良いです。
+Spring Bootアプリ本体のDocker化、Jib導入、GitHub Actionsからの自動デプロイは、最初のEC2疎通確認が終わってからで良いです。
 
 ## DB準備チェック
 
@@ -243,7 +295,8 @@ VITE_API_BASE_URL=https://api.example.com
 - RDS化
 - 独自ドメイン
 - GitHub ActionsからEC2への自動デプロイ
-- Docker化
+- Spring Bootアプリ本体のDocker化
+- `jib-maven-plugin` 導入
 - Blue/Green deployment
 - refresh token
 - OpenAPI Generator
@@ -253,6 +306,9 @@ VITE_API_BASE_URL=https://api.example.com
 
 Phase10の最初の完了条件は以下です。
 
+- EC2前に、Docker ComposeでMySQLを固定してローカル起動できる。
+- Spring BootをローカルJava/Maven起動のまま、Docker上のMySQLへ接続できる。
+- Flyway migrationと主要API疎通確認が通る。
 - EC2上でSpring Bootが `prod` profileで起動する。
 - Nginx経由で公開APIへアクセスできる。
 - HTTPSでAPIへアクセスできる。

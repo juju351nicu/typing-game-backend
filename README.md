@@ -26,6 +26,9 @@ typingGame のバックエンドAPIです。
 
 ローカルでバックエンドを起動する場合は、先にMySQLを起動してDBを用意します。
 
+今後、他PCでも同じDB条件で動かせるようにするため、EC2学習へ進む前にMySQLだけDocker Composeで固定する予定です。
+この段階ではSpring Bootアプリ本体はDocker化せず、ローカルのJava/Maven起動のままDocker上のMySQLへ接続します。
+
 MySQLを起動します。
 
 ```bash
@@ -432,6 +435,18 @@ Status:
 
 Status: 完了。`application-prod.yml` を追加し、本番公開前に整理する環境変数、CORS、JWT secret、Swagger公開範囲、セッションCookie方式の扱いを `docs/phase9-production-readiness-plan.md` にまとめています。EC2学習へ進む前の確認事項は `docs/phase10-ec2-deployment-checklist.md` に整理しています。
 
+### Phase 9.5: ローカルMySQLのDocker Compose固定
+
+目安は半日〜2日です。
+
+- 他PCでMySQLバージョン差が出ないように、MySQLだけDocker Composeで固定する。
+- Spring Bootアプリ本体は、まずローカルJava/Maven起動のままにする。
+- Flyway migration、JPA validate、Swagger疎通確認を同じDB条件で確認する。
+- Rancher Desktopを使う場合は、Docker CLI / Docker Composeを扱いやすくするために `dockerd` / `moby` を優先する。
+- `jib-maven-plugin` は、Spring Bootアプリ本体をDocker化する段階まで後回しにする。
+
+Status: 次に着手する小タスク。EC2へ入る前にDB環境差を減らし、その後Phase10へ進む方針です。
+
 ### Phase 10: EC2デプロイ学習
 
 目安は1〜2週間です。
@@ -442,7 +457,7 @@ Status: 完了。`application-prod.yml` を追加し、本番公開前に整理�
 - セキュリティグループ、ポート、HTTPSを確認する。
 - GitHub PagesのFEからEC2上のBEへ疎通確認する。
 
-Status: 着手準備完了。最初はEC2 1台にJava / MySQL / Nginxを置き、手動デプロイで `prod` profileの起動、Nginx経由のAPI疎通、HTTPS、GitHub Pages FEからのJWT Bearer認証確認を順に進める方針です。詳細は `docs/phase10-ec2-deployment-checklist.md` にまとめています。
+Status: Phase9.5のDocker Compose MySQL固定後に着手します。最初はEC2 1台にJava / MySQL / Nginxを置き、手動デプロイで `prod` profileの起動、Nginx経由のAPI疎通、HTTPS、GitHub Pages FEからのJWT Bearer認証確認を順に進める方針です。詳細は `docs/phase10-ec2-deployment-checklist.md` にまとめています。
 
 ### 後続フェーズの考え方
 
@@ -451,7 +466,7 @@ typingGameの規模では、手書きのTypeScript型とSwagger UIで十分に�
 API数が増え、FE/BEの型同期コストが大きくなった段階で再検討します。
 
 期間の目安は、最短で1〜2週間、現実的には3〜4週間、学習を丁寧に進める場合は1〜2か月です。
-まずはFE/BE結合確認を終わらせ、その後にJWT化、本番公開準備、EC2学習の順で進めます。
+まずはFE/BE結合確認を終わらせ、その後にJWT化、本番公開準備、Docker ComposeによるMySQL固定、EC2学習の順で進めます。
 
 ## 実装方針
 
