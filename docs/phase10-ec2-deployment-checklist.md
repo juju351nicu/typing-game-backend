@@ -149,7 +149,7 @@ Spring Boot 8091
 
 ## EC2内で準備するもの
 
-- Java 21
+- Java 25
 - Git
 - MySQL
 - Nginx

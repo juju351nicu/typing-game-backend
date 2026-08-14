@@ -190,7 +190,7 @@ JWT実装では、Spring Security の Resource Server / JOSE 系を使います�
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
 </dependency>
 ```
 
@@ -224,7 +224,7 @@ typingGameでは直接流用せず、以下の考え方を参考にします。
 
 2026-07-11時点で、以下を実装済みです。
 
-- `spring-boot-starter-oauth2-resource-server` を追加。
+- `spring-boot-starter-security-oauth2-resource-server` を追加。
 - `app.jwt.secret`、`app.jwt.expires-in-seconds`、`app.jwt.issuer` を設定化。
 - `JwtProperties` でJWT設定値を保持。
 - `JwtConfig` で `JwtEncoder` と `JwtDecoder` をBean化。

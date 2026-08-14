@@ -99,7 +99,7 @@ public class SaveScoreRequest {
 
 このプロジェクトでは、API仕様確認と学習のため Swagger UI を使います。
 
-- Spring Boot 3系では `springdoc-openapi-starter-webmvc-ui` を使う。
+- Spring Boot 4系では `springdoc-openapi-starter-webmvc-ui` 3.x を使う。
 - Swagger UI は `/swagger-ui.html` で確認する。
 - OpenAPI JSON は `/v3/api-docs` で確認する。
 - Spring Securityを使う場合、Swagger関連パスは `SecurityConfig` で認証不要にする。
