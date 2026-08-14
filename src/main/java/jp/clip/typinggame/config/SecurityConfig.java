@@ -8,6 +8,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -50,8 +52,7 @@ public class SecurityConfig {
         // JWT移行中は既存のセッションCookie方式も残し、Bearer token方式と並行して動かします。
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
         http.csrf(csrf -> csrf.disable());
-        http.cors(cors -> {
-        });
+        http.cors(Customizer.withDefaults());
         http.formLogin(form -> form.disable());
         http.httpBasic(basic -> basic.disable());
         http.oauth2ResourceServer(oauth2 -> oauth2
@@ -74,7 +75,7 @@ public class SecurityConfig {
                 .logoutUrl("/api/auth/logout")
                 .deleteCookies("JSESSIONID")
                 .invalidateHttpSession(true)
-                .logoutSuccessHandler((request, response, authentication) -> response.setStatus(HttpStatus.OK.value())));
+                .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK)));
 
         return http.build();
     }
