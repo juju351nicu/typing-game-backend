@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jp.clip.typinggame.dto.LoginRequest;
 import jp.clip.typinggame.dto.LoginResponse;
@@ -30,12 +29,21 @@ public class AuthController {
      * ログイン認証を行います。
      *
      * @param request ログインリクエスト
-     * @param httpRequest HTTPリクエスト
      * @return ログイン結果
      */
     @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        return authService.login(request, httpRequest);
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        return authService.login(request);
+    }
+
+    /**
+     * 現在のユーザーへ発行済みのJWTを失効させます。
+     *
+     * @param authentication 認証情報
+     */
+    @PostMapping("/logout")
+    public void logout(Authentication authentication) {
+        authService.logout(authentication);
     }
 
     /**

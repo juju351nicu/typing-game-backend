@@ -125,7 +125,7 @@ prod profileでは、以下の環境変数を使います。
 | `JWT_EXPIRES_IN_SECONDS` | JWT有効期限（秒） | 任意 |
 | `JWT_ISSUER` | JWT issuer | 任意 |
 | `APP_CORS_ALLOWED_ORIGINS` | CORS許可Origin | 必須 |
-| `SERVER_ADDRESS` | bind address | 任意 |
+| `SERVER_ADDRESS` | bind address（既定値 `127.0.0.1`） | 任意 |
 | `SERVER_PORT` | 起動ポート | 任意 |
 | `SPRINGDOC_ENABLED` | Swagger UI / OpenAPI JSONを有効にするか | 任意 |
 
@@ -197,6 +197,7 @@ GET /api/scores
 ```
 
 保存済みスコアを一覧で取得します。
+`limit` で取得件数を1〜100件に指定でき、未指定時は100件です。
 
 レスポンス例:
 
@@ -268,9 +269,8 @@ POST /api/auth/login
 ```
 
 登録済みユーザーのログインを行います。
-ログインに成功すると、Spring Security の認証情報をHTTPセッションに保存し、JWTアクセストークンも返します。
-JWT移行途中のため、現時点ではセッションCookie方式も残しています。
-フロントエンドからセッション方式で呼び出す場合は、Cookieを送受信できるように `credentials: "include"` を付ける想定です。
+ログインに成功するとJWTアクセストークンを返します。
+認証方式は `Authorization: Bearer {token}` に一本化し、HTTPセッションは作成しません。
 
 リクエスト例:
 
@@ -302,7 +302,7 @@ POST /api/auth/logout
 ```
 
 ログイン状態を終了します。
-Spring Security の logout 機能でHTTPセッションを破棄します。
+ユーザーのトークン世代を更新し、そのユーザーへ発行済みのJWTをすべて失効させます。
 
 ### ログイン中ユーザー取得
 
@@ -312,7 +312,7 @@ GET /api/auth/me
 
 ログイン中のユーザー情報を取得します。
 未ログインの場合は `401 Unauthorized` になります。
-移行期間中は、セッションCookieまたは `Authorization: Bearer {token}` のどちらでも認証できます。
+`Authorization: Bearer {token}` が必要です。
 
 ### ユーザー別スコア保存
 
@@ -322,7 +322,7 @@ POST /api/me/scores
 
 ログイン中ユーザーに紐づくスコアを保存します。
 未ログインの場合は `401 Unauthorized` になります。
-移行期間中は、セッションCookieまたは `Authorization: Bearer {token}` のどちらでも認証できます。
+`Authorization: Bearer {token}` が必要です。
 
 リクエスト内容は `POST /api/scores` と同じです。
 
@@ -334,7 +334,7 @@ GET /api/me/scores
 
 ログイン中ユーザーに紐づくスコア一覧を取得します。
 未ログインの場合は `401 Unauthorized` になります。
-移行期間中は、セッションCookieまたは `Authorization: Bearer {token}` のどちらでも認証できます。
+`Authorization: Bearer {token}` が必要です。
 
 ### ランキング取得
 
@@ -368,13 +368,10 @@ limit=20
 - 登録済みユーザーは、`POST /api/me/scores` でバックエンドAPIにスコアを保存する。
 - API接続に失敗した場合でも、フロントエンド側の localStorage fallback は残す。
 - まずは既存のスコア保存体験を壊さず、DB保存を追加する。
-- ログインAPIはセッションCookie方式で開始するため、FE側のAPI呼び出しでは `credentials: "include"` を使う。
-- ログイン画面は todo-frontend の `Login.vue` を参考にする。ただし typingGame はセッションCookie方式のため、token/localStorage保存の実装はそのまま流用しない。
 - APIエラーは `fieldErrors` 形式で返し、FE側は同じ形式でエラー表示する。
-- JWT移行後は、ログイン成功時の `accessToken` をFEの `sessionStorage` に保持し、`Authorization: Bearer {token}` でログインユーザー向けAPIを呼び出す。
-- JWT移行中はセッションCookie方式を移行期間とローカル学習用として残し、既存の結合確認済みの動作を壊さないように進める。
-- 最終的な主方式はJWT Bearer認証に寄せる。
-- Cookie無効時でもSpring Security自体が使えなくなるわけではない。ただし、セッションCookie方式はログイン継続が難しくなるため、FE/BE別ホスト構成ではJWT方式を優先する。
+- ログイン成功時の `accessToken` をFEの `sessionStorage` に保持し、`Authorization: Bearer {token}` でログインユーザー向けAPIを呼び出す。
+- BEはステートレスなJWT Bearer認証のみを使い、セッションCookie認証は使わない。
+- 現行FEは互換上 `credentials: "include"` を指定しているが、BEはCookieを認証に利用しない。
 - localStorageは認証方式ではなく、FE側の未ログインスコア保存・API失敗時fallbackとして扱う。
 
 ## 今後の実装順
@@ -410,17 +407,17 @@ docs/jwt-migration-plan.md
 
 - ログイン成功時にJWTを発行する。
 - フロントエンドから `Authorization` ヘッダーでログインユーザー向けAPIを呼び出す。
-- HTTPセッション依存を減らし、GitHub PagesのFEと別ホストのBEを接続しやすくする。
+- HTTPセッション依存をなくし、GitHub PagesのFEと別ホストのBEを接続しやすくする。
 - ログアウト、認証切れ、未ログイン時のエラー形式を整理する。
 
 初期設計メモ:
 
-- 現在のセッションCookie方式はローカル学習用として残し、JWT化は別フェーズとして扱う。
+- セッションCookie方式は移行確認後に削除し、JWT Bearer認証へ一本化する。
 - JWT化後はログイン成功時にaccess tokenを返す。
 - FEは `Authorization: Bearer {token}` でログインユーザー向けAPIを呼び出す。
 - 最初はaccess tokenのみ、FE保存先は `sessionStorage` を候補にする。
 - refresh token はaccess token方式が安定してから検討する。
-- token保存場所、期限切れ、ログアウト時の破棄、refresh tokenを使うかは実装前に決める。
+- token保存場所、期限切れ、ログアウト時の失効、refresh tokenを使うかを整理する。
 - EC2公開やGitHub Pages連携の前に、ローカルでJWT認証の正常系、期限切れ、未ログインエラーを確認する。
 
 Status:
@@ -429,10 +426,12 @@ Status:
 - `POST /api/auth/login` は `accessToken`、`tokenType`、`expiresIn` を返す。
 - FE側で `accessToken` を `sessionStorage` に保存し、`fetchClient.ts` から `Authorization` ヘッダーを付ける実装は完了。
 - BE側で `Authorization: Bearer {token}` から `LoginUserDetails` を復元する実装は完了。
-- 既存のセッションCookie方式は移行期間とローカル学習用として残している。
+- HTTPセッションを削除し、JWT Bearer認証へ一本化済み。
+- ログアウト時はユーザー単位のトークン世代を更新し、発行済みJWTを失効させる。
+- JWTのissuerを検証する。
 - 不正Bearer token時も `fieldErrors` 形式の401を返すことを確認済み。
 - Swagger UIでBearer tokenを入力できるOpenAPI設定を追加済み。
-- 最終的な主方式はJWT Bearer認証に寄せる。次は本番公開準備、またはセッションCookie方式を削除するタイミングの判断を進める。
+- JWT Bearer認証への移行は完了。次は短命access tokenとrefresh tokenの要否を検討する。
 
 ### Phase 9: 本番公開準備
 

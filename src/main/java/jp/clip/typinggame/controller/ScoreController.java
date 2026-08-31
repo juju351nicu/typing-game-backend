@@ -3,14 +3,18 @@ package jp.clip.typinggame.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jp.clip.typinggame.dto.SaveScoreRequest;
 import jp.clip.typinggame.dto.ScoreResponse;
 import jp.clip.typinggame.service.ScoreService;
@@ -22,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/scores")
 @RequiredArgsConstructor
+@Validated
 public class ScoreController {
 
     /** スコア情報の業務処理を行うサービスです。 */
@@ -42,10 +47,15 @@ public class ScoreController {
     /**
      * 保存済みスコア情報を取得します。
      *
+     * @param limit 取得件数
      * @return 保存済みスコア情報の一覧
      */
     @GetMapping
-    public List<ScoreResponse> findAll() {
-        return scoreService.findAll();
+    public List<ScoreResponse> findAll(
+            @RequestParam(defaultValue = "100")
+            @Min(value = 1, message = "取得件数は1以上で入力してください。")
+            @Max(value = 100, message = "取得件数は100以下で入力してください。")
+            Integer limit) {
+        return scoreService.findAll(limit);
     }
 }

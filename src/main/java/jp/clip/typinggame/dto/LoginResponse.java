@@ -19,10 +19,7 @@ public class LoginResponse {
     /**
      * API認証に利用するアクセストークンです。
      *
-     * <p>
-     * JWT化の移行期間中はセッションCookieも残しますが、FE側ではこの値を
-     * AuthorizationヘッダーのBearerトークンとして送信する方針です。
-     * </p>
+     * FE側はこの値をAuthorizationヘッダーのBearerトークンとして送信します。
      */
     @JsonProperty("accessToken")
     private String accessToken;

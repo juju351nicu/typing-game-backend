@@ -20,9 +20,10 @@ public interface ScoreRepository extends JpaRepository<Score, Long> {
     /**
      * スコア情報を作成日時の降順で取得します。
      *
+     * @param pageable 取得件数
      * @return 作成日時の降順で並んだスコア情報の一覧
      */
-    List<Score> findAllByOrderByCreatedAtDesc();
+    List<Score> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     /**
      * 指定ユーザーのスコア情報を作成日時の降順で取得します。

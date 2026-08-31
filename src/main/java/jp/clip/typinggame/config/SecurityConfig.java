@@ -17,7 +17,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,10 +26,7 @@ import lombok.RequiredArgsConstructor;
 /**
  * Spring Securityの認証・認可設定です。
  *
- * <p>
- * todo-backend のSecurity設定を参考にしつつ、typingGameではAPI用の最小構成として
- * セッションCookie方式、BCryptパスワード、CSRF無効化から開始します。
- * </p>
+ * JWT Bearer認証、APIごとの認可ルール、認証失敗時のレスポンスを設定します。
  */
 @Configuration
 @EnableWebSecurity
@@ -49,8 +45,8 @@ public class SecurityConfig {
      */
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // JWT移行中は既存のセッションCookie方式も残し、Bearer token方式と並行して動かします。
-        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
+        // 認証情報はリクエストごとのBearer tokenから復元し、HTTPセッションには保存しません。
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.csrf(csrf -> csrf.disable());
         http.cors(Customizer.withDefaults());
         http.formLogin(form -> form.disable());
@@ -62,7 +58,7 @@ public class SecurityConfig {
         http.exceptionHandling(exception -> exception
                 .authenticationEntryPoint(this::writeUnauthorizedResponse));
 
-        // 公開APIと認証必須APIを分け、/api/me/** などはセッションまたはJWT認証を要求します。
+        // 公開APIと認証必須APIを分け、/api/me/** などはJWT認証を要求します。
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -70,12 +66,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/scores/**").permitAll()
                 .requestMatchers("/api/rankings/**").permitAll()
                 .anyRequest().authenticated());
-
-        http.logout(logout -> logout
-                .logoutUrl("/api/auth/logout")
-                .deleteCookies("JSESSIONID")
-                .invalidateHttpSession(true)
-                .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK)));
 
         return http.build();
     }
@@ -92,7 +82,7 @@ public class SecurityConfig {
             HttpServletRequest request,
             HttpServletResponse response,
             AuthenticationException authException) throws java.io.IOException {
-        // FE側のエラー表示を共通化するため、セッション認証失敗もJWT認証失敗もfieldErrors形式で返します。
+        // FE側のエラー表示を共通化するため、JWT認証失敗もfieldErrors形式で返します。
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

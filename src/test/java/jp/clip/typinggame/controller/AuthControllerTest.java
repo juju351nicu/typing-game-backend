@@ -1,10 +1,13 @@
 package jp.clip.typinggame.controller;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +18,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -46,6 +53,9 @@ class AuthControllerTest {
     @Autowired
     private ScoreRepository scoreRepository;
 
+    @Autowired
+    private JwtEncoder jwtEncoder;
+
     /**
      * 各テスト実行前にスコアテーブルとユーザーテーブルを空にします。
      */
@@ -56,7 +66,7 @@ class AuthControllerTest {
     }
 
     /**
-     * ログインAPIの正常系と、セッションを使ったログイン中ユーザー取得を確認します。
+     * ログインAPIの正常系と、JWTを使ったログイン中ユーザー取得を確認します。
      *
      * @throws Exception MockMvc実行時に例外が発生した場合
      */
@@ -78,17 +88,13 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.expiresIn").value(3600))
+                .andExpect(cookie().doesNotExist("JSESSIONID"))
                 .andReturn();
 
-        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
         String accessToken = extractAccessToken(loginResult);
+        assertNull(loginResult.getRequest().getSession(false));
 
-        // 移行期間中は、既存のセッションCookie方式でもログイン中ユーザーを取得できることを確認します。
-        mockMvc.perform(get("/api/auth/me").session(session))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginEmail").value("user@example.com"));
-
-        // JWT方式でも同じユーザーを復元できることを確認します。
+        // ログインレスポンスのJWTだけで同じユーザーを復元できることを確認します。
         mockMvc.perform(get("/api/auth/me")
                 .header(HttpHeaders.AUTHORIZATION, toBearerToken(accessToken)))
                 .andExpect(status().isOk())
@@ -145,6 +151,48 @@ class AuthControllerTest {
     }
 
     /**
+     * issuerが異なる署名済みJWTを拒否することを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("GET /api/auth/me はissuerが異なるBearer tokenの場合401を返す")
+    void meReturnsUnauthorizedWhenIssuerDoesNotMatch() throws Exception {
+        registerUser("user@example.com", "password123");
+        String accessToken = createAccessToken("another-issuer", "user@example.com", 0);
+
+        mockMvc.perform(get("/api/auth/me")
+                .header(HttpHeaders.AUTHORIZATION, toBearerToken(accessToken)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("ログインしてください。"));
+    }
+
+    /**
+     * ログアウト後に発行済みJWTが利用できなくなることを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("POST /api/auth/logout は発行済みBearer tokenを失効させる")
+    void logoutRevokesIssuedBearerToken() throws Exception {
+        registerUser("user@example.com", "password123");
+        String accessToken = loginAndExtractAccessToken("user@example.com", "password123");
+
+        mockMvc.perform(post("/api/auth/logout")
+                .header(HttpHeaders.AUTHORIZATION, toBearerToken(accessToken)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/auth/me")
+                .header(HttpHeaders.AUTHORIZATION, toBearerToken(accessToken)))
+                .andExpect(status().isUnauthorized());
+
+        String newAccessToken = loginAndExtractAccessToken("user@example.com", "password123");
+        mockMvc.perform(get("/api/auth/me")
+                .header(HttpHeaders.AUTHORIZATION, toBearerToken(newAccessToken)))
+                .andExpect(status().isOk());
+    }
+
+    /**
      * テスト用ユーザーを登録します。
      *
      * @param loginEmail ログインメールアドレス
@@ -161,6 +209,47 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
+    }
+
+    /**
+     * 登録済みユーザーでログインし、アクセストークンを取得します。
+     *
+     * @param loginEmail ログインメールアドレス
+     * @param password パスワード
+     * @return アクセストークン
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    private String loginAndExtractAccessToken(String loginEmail, String password) throws Exception {
+        Map<String, Object> request = Map.of(
+                "loginEmail", loginEmail,
+                "password", password);
+        MvcResult result = mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andReturn();
+        return extractAccessToken(result);
+    }
+
+    /**
+     * テスト用の署名済みJWTを生成します。
+     *
+     * @param issuer issuer claim
+     * @param subject subject claim
+     * @param tokenVersion トークン世代
+     * @return JWT文字列
+     */
+    private String createAccessToken(String issuer, String subject, long tokenVersion) {
+        Instant issuedAt = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer(issuer)
+                .issuedAt(issuedAt)
+                .expiresAt(issuedAt.plusSeconds(3600))
+                .subject(subject)
+                .claim("tokenVersion", tokenVersion)
+                .build();
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }
 
     /**

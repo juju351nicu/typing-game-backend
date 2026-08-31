@@ -5,17 +5,12 @@ import java.time.LocalDateTime;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import jp.clip.typinggame.dto.LoginRequest;
 import jp.clip.typinggame.dto.LoginResponse;
 import jp.clip.typinggame.dto.UserResponse;
@@ -42,14 +37,13 @@ public class AuthService {
     private final JwtTokenService jwtTokenService;
 
     /**
-     * ログイン認証を行い、認証情報をHTTPセッションに保存します。
+     * ログイン認証を行い、JWTアクセストークンを発行します。
      *
      * @param request ログインリクエスト
-     * @param httpRequest HTTPリクエスト
      * @return ログイン結果
      */
     @Transactional
-    public LoginResponse login(LoginRequest request, HttpServletRequest httpRequest) {
+    public LoginResponse login(LoginRequest request) {
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
@@ -57,13 +51,6 @@ public class AuthService {
         } catch (AuthenticationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "メールアドレスまたはパスワードが正しくありません。");
         }
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
-
-        HttpSession session = httpRequest.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
 
         User user = currentUserService.findAuthenticatedUser(authentication);
         user.setLastLoginAt(LocalDateTime.now());
@@ -74,6 +61,17 @@ public class AuthService {
         response.setTokenType("Bearer");
         response.setExpiresIn(jwtTokenService.getExpiresInSeconds());
         return response;
+    }
+
+    /**
+     * ユーザーのトークン世代を進め、発行済みJWTをすべて失効させます。
+     *
+     * @param authentication 認証情報
+     */
+    @Transactional
+    public void logout(Authentication authentication) {
+        User user = currentUserService.findAuthenticatedUser(authentication);
+        user.setTokenVersion(user.getTokenVersion() + 1);
     }
 
     /**

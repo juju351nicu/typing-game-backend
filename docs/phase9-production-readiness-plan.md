@@ -9,14 +9,14 @@ Phase9では、すぐにEC2へ公開するのではなく、将来公開する�
 
 ## 現在の到達点
 
-2026-07-18時点では、以下まで完了しています。
+2026-08-31時点では、以下まで完了しています。
 
 - MySQL + Flyway でスキーマ管理できる。
 - スコア保存、ランキング、ユーザー登録、ログインAPIがある。
 - Spring Securityを使っている。
 - JWT Bearer認証でログインユーザー向けAPIを呼べる。
 - Swagger UIでBearer tokenを使ってAPI確認できる。
-- セッションCookie方式は移行期間とローカル学習用として残している。
+- JWT Bearer認証へ一本化し、HTTPセッションは作成しない。
 - FEはGitHub Pages向けに、バックエンドAPI無効でもlocalStorage保存で動く。
 - `application-prod.yml` でDB、JWT、CORS、Swagger公開範囲を環境変数化できる。
 - GitHub Pages公開版のFEはAPI無効モードでdeploy済み。
@@ -34,7 +34,7 @@ Phase9の目的だった「本番公開へ進む前に必要な設定項目を�
 - `APP_CORS_ALLOWED_ORIGINS` でCORS許可Originを切り替える方針にした。
 - `SPRINGDOC_ENABLED=false` をprod profileのデフォルトにした。
 - JWT Bearer認証を主方式にする方針をdocsへ残した。
-- セッションCookie方式を残す理由と削除タイミングをdocsへ残した。
+- セッションCookie方式を削除し、ログアウト時のJWT失効を実装した。
 - FE側のGitHub Pages単体公開方針と矛盾しない状態にした。
 - EC2学習へ進む前のチェックリストを作成した。
 
@@ -166,7 +166,8 @@ APP_CORS_ALLOWED_ORIGINS="https://juju351nicu.github.io"
 ```
 
 JWT Bearer方式を主方式にする場合、Cookie送受信への依存は減ります。
-ただし、現時点ではセッションCookie方式も移行期間として残しているため、`allowCredentials=true` は維持しています。
+現行FEがfetch時に `credentials: "include"` を指定しているため、互換性のため `allowCredentials=true` は維持しています。
+BEはCookieを認証に利用せず、HTTPセッションも作成しません。
 
 ### 4. server.addressの扱いを整理する
 
@@ -177,15 +178,14 @@ server:
   address: localhost
 ```
 
-これはローカルでは安全ですが、EC2など外部からアクセスさせる環境では不向きです。
-本番公開時は、外部から受ける構成に応じて以下を検討します。
+EC2ではNginxだけを外部公開し、Spring Bootはループバックで待ち受けます。
 
 ```yaml
 server:
-  address: 0.0.0.0
+  address: 127.0.0.1
 ```
 
-ただし、いきなり公開ポートを開けるのではなく、Nginxのリバースプロキシ、セキュリティグループ、HTTPSを合わせて確認します。
+`application-prod.yml` も環境変数未設定時の既定値を `127.0.0.1` とし、設定漏れでアプリのポートが全インターフェースへ公開されないようにします。
 
 ### 5. Swagger UIの公開範囲を決める
 
@@ -222,33 +222,9 @@ SPRINGDOC_ENABLED=false
 
 ### 6. セッションCookie方式を残すか削除するか
 
-Phase9開始時点では、セッションCookie方式は削除しません。
-
-理由:
-
-- JWT方式と比較して学習できる。
-- 既存テストがセッション方式の挙動も確認している。
-- まだEC2公開前で、削除によるリスクを取る必要が低い。
-
-ただし、最終的な主方式はJWT Bearer認証です。
-GitHub Pages FE + 別ホストBEの構成では、CookieよりAuthorizationヘッダー方式の方が扱いやすいからです。
-
-削除を検討するタイミング:
-
-- FEからJWTだけでログイン、スコア保存、ランキング表示が安定した後。
-- Swagger UIとcurlでJWT認証APIを確認できた後。
-- 本番公開構成でCookieを使わない方針が固まった後。
-
-削除する場合に見る箇所:
-
-```text
-SecurityConfig の SessionCreationPolicy
-AuthService の HTTPセッション保存処理
-logout APIのセッション破棄処理
-FE fetchClient の credentials: "include"
-セッション方式を前提にしたテスト
-README/docsの説明
-```
+JWTによる結合確認が完了したため、セッションCookie方式は削除しました。
+`SessionCreationPolicy.STATELESS` とし、ログイン時のHTTPセッション保存とセッション前提のテストも削除しています。
+ログアウトはユーザーのトークン世代を更新し、そのユーザーへ発行済みのJWTを失効させます。
 
 ### 7. DBユーザーとroot利用を見直す
 
@@ -317,6 +293,6 @@ Phase9の完了条件は以下です。
 - ローカル設定と本番想定設定の違いがdocsにまとまっている。完了。
 - 本番で環境変数化する値が明確になっている。完了。
 - JWT Bearer認証を主方式にする判断がdocsに残っている。完了。
-- セッションCookie方式を残す理由と削除タイミングがdocsに残っている。完了。
+- セッションCookie方式を削除し、JWT Bearer認証へ一本化している。完了。
 - FE側のGitHub Pages単体公開方針と矛盾していない。完了。
 - EC2学習へ進む前のチェックリストがある。完了。

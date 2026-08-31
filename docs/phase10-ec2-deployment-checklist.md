@@ -23,8 +23,8 @@ Phase10では、typing-game-backendをEC2上で動かし、GitHub Pagesで公開
 - `prod` profileでは `JWT_SECRET` にデフォルト値を置かない。
 - CORS許可Originは `APP_CORS_ALLOWED_ORIGINS` で外出しする方針。
 - `prod` profileではSwagger UI / OpenAPI JSONをデフォルト無効にする。
-- JWT Bearer認証を主方式にする。
-- セッションCookie方式は移行期間とローカル学習用として残す。
+- JWT Bearer認証へ一本化し、HTTPセッションは作成しない。
+- JWTのissuerとトークン世代を検証し、ログアウト時は発行済みJWTを失効させる。
 - GitHub Pages公開版のFEはAPI無効モードで公開済み。
 - GitHub Pages公開URLで、ゲームプレイ、localStorage保存、ランキング表示を確認済み。
 

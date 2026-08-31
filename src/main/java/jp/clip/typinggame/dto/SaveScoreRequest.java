@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import jp.clip.typinggame.enums.GameModeEnum;
 import jp.clip.typinggame.enums.GameRuleEnum;
 import lombok.Getter;
@@ -38,6 +40,9 @@ public class SaveScoreRequest {
     @JsonProperty("time")
     @Schema(description = "クリアタイム", example = "00:00:28.00")
     @NotBlank(message = "クリアタイムを入力してください。")
+    @Size(max = 20, message = "クリアタイムは20文字以内で入力してください。")
+    @Pattern(regexp = "^\\d{2,}:[0-5]\\d:[0-5]\\d\\.\\d{2}$",
+            message = "クリアタイムはHH:mm:ss.SS形式で入力してください。")
     private String time;
 
     /** ゲームスコアです。 */
@@ -45,6 +50,7 @@ public class SaveScoreRequest {
     @Schema(description = "ゲームスコア", example = "12")
     @NotNull(message = "スコアを入力してください。")
     @Min(value = 0, message = "スコアは0以上で入力してください。")
+    @Max(value = 100000, message = "スコアは100000以下で入力してください。")
     private Integer score;
 
     /** 難易度を表すモード値です。 */
@@ -70,6 +76,7 @@ public class SaveScoreRequest {
     @JsonProperty("wpm")
     @Schema(description = "1分あたりの入力文字数", example = "32")
     @Min(value = 0, message = "WPMは0以上で入力してください。")
+    @Max(value = 1000, message = "WPMは1000以下で入力してください。")
     private Integer wpm;
 
     /** 入力の正確率です。 */
@@ -83,11 +90,13 @@ public class SaveScoreRequest {
     @JsonProperty("missCount")
     @Schema(description = "ミスタイプ数", example = "2")
     @Min(value = 0, message = "ミスタイプ数は0以上で入力してください。")
+    @Max(value = 100000, message = "ミスタイプ数は100000以下で入力してください。")
     private Integer missCount;
 
     /** 正しく入力した文字数です。 */
     @JsonProperty("correctCharacterCount")
     @Schema(description = "正しく入力した文字数", example = "80")
     @Min(value = 0, message = "正しく入力した文字数は0以上で入力してください。")
+    @Max(value = 100000, message = "正しく入力した文字数は100000以下で入力してください。")
     private Integer correctCharacterCount;
 }

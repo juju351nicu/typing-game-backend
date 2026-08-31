@@ -1,5 +1,6 @@
 package jp.clip.typinggame.controller;
 
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -195,5 +196,71 @@ class ScoreControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[0].errorCode").value("INVALID_REQUEST"));
+    }
+
+    /**
+     * スコア関連の数値が上限を超える場合のvalidationエラーを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("POST /api/scores は数値項目が上限を超える場合400を返す")
+    void saveScoreReturnsBadRequestWhenValuesExceedMaximums() throws Exception {
+        Map<String, Object> request = Map.of(
+                "time", "00:00:28.00",
+                "score", 100001,
+                "mode", 2,
+                "gameRule", "timeAttack",
+                "timeLimitSeconds", 60,
+                "wpm", 1001,
+                "accuracy", 96,
+                "missCount", 100001,
+                "correctCharacterCount", 100001);
+
+        mockMvc.perform(post("/api/scores")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[*].field", hasItems(
+                        "score", "wpm", "missCount", "correctCharacterCount")));
+    }
+
+    /**
+     * DBカラム長を超えるクリアタイムを入口で拒否することを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("POST /api/scores はクリアタイムが20文字を超える場合400を返す")
+    void saveScoreReturnsBadRequestWhenTimeIsTooLong() throws Exception {
+        Map<String, Object> request = Map.of(
+                "time", "123456789012:00:00.00",
+                "score", 12,
+                "mode", 2,
+                "gameRule", "timeAttack",
+                "timeLimitSeconds", 60,
+                "wpm", 32,
+                "accuracy", 96,
+                "missCount", 2,
+                "correctCharacterCount", 80);
+
+        mockMvc.perform(post("/api/scores")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("time"));
+    }
+
+    /**
+     * スコア一覧の取得件数上限を確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("GET /api/scores は取得件数が100を超える場合400を返す")
+    void findAllReturnsBadRequestWhenLimitExceedsMaximum() throws Exception {
+        mockMvc.perform(get("/api/scores").param("limit", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("limit"));
     }
 }

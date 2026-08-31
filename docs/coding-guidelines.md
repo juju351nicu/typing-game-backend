@@ -86,14 +86,12 @@ public class SaveScoreRequest {
 - パスワードは平文保存しない。
 - パスワード保存時は `BCryptPasswordEncoder` で暗号化する。
 - 認証ユーザーの取得は `UserDetailsService` を通す。
-- 最終的な主方式はJWT Bearer認証に寄せる。
-- セッションCookie方式は、移行期間とローカル学習用の比較対象として残す。
-- FEからセッションCookie方式でログイン後APIを呼ぶ場合は、Cookie送受信のため `credentials: "include"` を付ける。
-- Cookieが無効なブラウザでは、セッションCookie方式のログイン継続は難しくなる。ただし、Spring Security自体が使えなくなるわけではない。
-- Cookie無効時でも、`Authorization: Bearer {token}` を送るJWT方式であればSpring SecurityのResource Server認証を利用できる。
+- 認証方式はステートレスなJWT Bearer認証とし、HTTPセッションへ認証情報を保存しない。
+- JWTは署名、有効期限、issuer、ユーザーごとのトークン世代を検証する。
+- ログアウト時はトークン世代を更新し、そのユーザーへ発行済みのJWTを失効させる。
 - `localStorage` は認証方式ではなく、未ログインユーザーのスコア保存・API失敗時のfallback用途として扱う。
 - JWT access token はFEの `sessionStorage` に保存する方針とし、`localStorage` へは保存しない。
-- todo-backend のSecurity設定を参考にするが、`NoOpPasswordEncoder` は使わない。
+- パスワードのEncoderに `NoOpPasswordEncoder` は使わない。
 
 ### Swagger / OpenAPI
 
@@ -146,7 +144,7 @@ Ghost-PDF5 の静的JavaScriptは、typingGameのTypeScript実装へそのまま
 - Ghost-PDF5 `rest.js`
   - fetchの共通処理、HTTPメソッド、JSON送受信の考え方を参考にする。
   - typingGameでは `src/utils/fetchClient.ts` に置く。
-  - typingGameはセッションCookie認証のため、API呼び出しでは `credentials: "include"` を使う。
+  - typingGameの認証対象APIには `Authorization: Bearer {token}` を付ける。
 - Ghost-PDF5 `util.js`
   - 空判定、localStorage、文字列補助などの考え方を参考にする。
   - typingGameでは `src/utils/gameUtils.ts` など、用途が分かる名前へ分ける。

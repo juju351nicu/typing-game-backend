@@ -59,11 +59,12 @@ public class ScoreService {
     /**
      * 保存済みスコア情報を作成日時の降順で取得します。
      *
+     * @param limit 取得件数
      * @return 保存済みスコア情報の一覧
      */
     @Transactional(readOnly = true)
-    public List<ScoreResponse> findAll() {
-        return scoreRepository.findAllByOrderByCreatedAtDesc().stream()
+    public List<ScoreResponse> findAll(Integer limit) {
+        return scoreRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, limit)).stream()
                 .map(this::toResponse)
                 .toList();
     }

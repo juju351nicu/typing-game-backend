@@ -19,11 +19,13 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jp.clip.typinggame.exception.CustomFieldError;
 import jp.clip.typinggame.exception.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * API共通の例外レスポンスを生成するハンドラーです。
  */
 @RestControllerAdvice
+@Slf4j
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     /**
@@ -94,6 +96,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
                 .toList();
 
         return ResponseEntity.badRequest().body(new ErrorResponse(fieldErrors));
+    }
+
+    /**
+     * 想定外の例外をログへ記録し、内部情報を含まない固定レスポンスへ変換します。
+     *
+     * @param ex 想定外の例外
+     * @return 共通エラーレスポンス
+     */
+    @ExceptionHandler(Exception.class)
+    protected ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
+        log.error("想定外のエラーが発生しました。", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ErrorResponse.of("INTERNAL_ERROR", "", "処理に失敗しました。"));
     }
 
     /**

@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
@@ -45,9 +46,11 @@ public class JwtConfig {
     @Bean
     JwtDecoder jwtDecoder(JwtProperties properties) {
         // API呼び出し時のBearer token検証でも、発行時と同じ秘密鍵・アルゴリズムを使います。
-        return NimbusJwtDecoder.withSecretKey(createSecretKey(properties))
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(createSecretKey(properties))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
+        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(properties.getIssuer()));
+        return decoder;
     }
 
     /**

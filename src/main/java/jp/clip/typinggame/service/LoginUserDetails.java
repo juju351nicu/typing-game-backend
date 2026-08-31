@@ -28,6 +28,9 @@ public class LoginUserDetails implements UserDetails {
     /** 暗号化済みパスワードです。 */
     private String password;
 
+    /** 発行済みJWTの有効性を判定するトークン世代です。 */
+    private long tokenVersion;
+
     /**
      * ユーザーに付与されている権限を返します。
      *

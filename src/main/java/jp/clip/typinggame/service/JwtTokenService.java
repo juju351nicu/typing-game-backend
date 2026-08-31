@@ -19,6 +19,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class JwtTokenService {
 
+    /** 発行済みJWTをユーザー単位で失効させるためのclaim名です。 */
+    public static final String TOKEN_VERSION_CLAIM = "tokenVersion";
+
     /** JWTを文字列へエンコードするSpring Securityの部品です。 */
     private final JwtEncoder jwtEncoder;
 
@@ -43,6 +46,7 @@ public class JwtTokenService {
                 .expiresAt(expiresAt)
                 .subject(userDetails.getUsername())
                 .claim("userId", userDetails.getUserId())
+                .claim(TOKEN_VERSION_CLAIM, userDetails.getTokenVersion())
                 .build();
 
         // FEへ返すtokenは、Spring SecurityのDecoderで検証できるHS256署名付きJWTにします。

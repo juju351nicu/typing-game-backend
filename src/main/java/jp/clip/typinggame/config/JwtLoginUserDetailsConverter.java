@@ -2,11 +2,12 @@ package jp.clip.typinggame.config;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import jp.clip.typinggame.service.JwtTokenService;
 import jp.clip.typinggame.service.LoginUserDetails;
 import jp.clip.typinggame.service.LoginUserDetailsService;
 import lombok.RequiredArgsConstructor;
@@ -35,8 +36,12 @@ public class JwtLoginUserDetailsConverter implements Converter<Jwt, AbstractAuth
 
         // JWTのsubjectにはログインメールアドレスを入れているため、既存のUserDetailsServiceで復元します。
         LoginUserDetails userDetails = (LoginUserDetails) loginUserDetailsService.loadUserByUsername(loginEmail);
+        Number tokenVersion = jwt.getClaim(JwtTokenService.TOKEN_VERSION_CLAIM);
+        if (tokenVersion == null || tokenVersion.longValue() != userDetails.getTokenVersion()) {
+            throw new BadCredentialsException("JWTは失効しています。");
+        }
 
-        // 既存のセッション認証と同じprincipal型にそろえ、CurrentUserServiceを共通利用します。
+        // パスワード認証と同じprincipal型にそろえ、CurrentUserServiceを共通利用します。
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                 userDetails,
                 jwt.getTokenValue(),

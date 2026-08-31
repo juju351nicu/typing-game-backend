@@ -46,6 +46,10 @@ public class User {
     /** 最後にログインした日時です。 */
     private LocalDateTime lastLoginAt;
 
+    /** ログアウト時に進め、過去に発行したJWTを無効化する世代番号です。 */
+    @Column(nullable = false)
+    private long tokenVersion;
+
     /** ユーザー作成日時です。 */
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

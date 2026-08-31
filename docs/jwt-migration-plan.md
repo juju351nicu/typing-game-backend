@@ -2,14 +2,13 @@
 
 ## 目的
 
-GitHub Pages のフロントエンドと、将来EC2などで公開するバックエンドを接続しやすくするため、現在のセッションCookie方式からJWT方式への移行を検討します。
+GitHub Pages のフロントエンドと、将来EC2などで公開するバックエンドを接続しやすくするため、セッションCookie方式からJWT方式へ移行します。
 
 ## 現在の状態
 
-現在は Spring Security のセッションCookie方式とJWT Bearer token方式を並行しています。
-ログイン成功時に `accessToken`、`tokenType`、`expiresIn` を返し、`Authorization: Bearer {token}` からログインユーザーを復元できます。
-
-既存の結合確認済み動作を壊さないため、現時点ではセッションCookie方式も残しています。
+Spring SecurityはステートレスなJWT Bearer token方式に一本化済みです。
+ログイン成功時に `accessToken`、`tokenType`、`expiresIn` を返し、`Authorization: Bearer {token}` からログインユーザーを復元します。
+ログアウト時はユーザーのトークン世代を更新し、そのユーザーへ発行済みのJWTを失効させます。
 
 ```text
 POST /api/auth/login
@@ -19,9 +18,7 @@ POST /api/me/scores
 GET  /api/me/scores
 ```
 
-FE側は移行期間中、セッションCookie方式では `credentials: "include"`、JWT方式では `Authorization` ヘッダーを使います。
-
-この方式はローカル学習には分かりやすい一方、GitHub Pages と別ホストのBEをつなぐ場合、CORS、SameSite、HTTPS、Cookieドメインの影響を受けやすくなります。
+FE側は `sessionStorage` のJWTを `Authorization` ヘッダーで送ります。
 
 ## JWT化する理由
 
@@ -55,11 +52,10 @@ FE保存場所: sessionStorage
 送信方法: Authorization: Bearer {token}
 有効期限: 30分〜60分を候補にする
 refresh token: 後回し
-既存セッションCookie方式: JWT移行完了までは必要に応じて残す
+既存セッションCookie方式: 移行完了後に削除
 ```
 
-Phase8以降の判断として、typingGameの最終的な主方式はJWT Bearer認証に寄せます。
-セッションCookie方式は、ローカル学習と移行期間の互換用として残します。
+typingGameの認証方式はJWT Bearer認証に一本化しました。
 
 理由:
 
@@ -67,9 +63,6 @@ Phase8以降の判断として、typingGameの最終的な主方式はJWT Bearer
 - Swagger UIやcurlで `Authorization: Bearer {token}` を明示して試しやすい。
 - Cookieの `SameSite`、`Secure`、ドメイン、CORS、HTTPS条件に依存する部分を減らせる。
 - Spring SecurityのResource Server構成、JWT検証、認証情報復元、401応答を学習できる。
-
-現時点では、すぐにセッションCookie方式を削除しません。
-JWT化で問題が起きた場合に、既存のセッション方式と比較して原因を切り分けるためです。
 
 ### sessionStorageを選ぶ理由
 
@@ -239,15 +232,17 @@ typingGameでは直接流用せず、以下の考え方を参考にします。
 - `AuthControllerTest` でログインレスポンスにJWT項目が含まれることを確認。
 - `AuthControllerTest` と `MyScoreControllerTest` でBearer token認証を確認。
 - `OpenApiConfigTest` でOpenAPI JSONにBearer認証定義が含まれることを確認。
+- `SessionCreationPolicy.STATELESS` とし、ログイン時のHTTPセッション保存を削除。
+- JWTのissuerとユーザーごとのトークン世代を検証。
+- ログアウト時にトークン世代を更新し、発行済みJWTを失効。
 
 現時点の役割:
 
 ```text
 ログイン成功
--> セッションCookieを作る
--> 追加でaccess tokenも返す
+-> access tokenを返す
 Authorization: Bearer {token}
--> BEでJWTを検証
+-> BEで署名、有効期限、issuer、トークン世代を検証
 -> SecurityContextにログインユーザー情報を復元
 -> /api/me/** をJWTで呼べるようにする
 ```
@@ -289,7 +284,6 @@ Authorization: Bearer {token}
 - `user`: ログイン中ユーザー情報
 
 `GET /api/auth/me` と `/api/me/**` は、JWTの `Authorization` ヘッダーからログインユーザーを取得できます。
-現時点では、移行期間のためセッションCookie方式でも動作します。
 
 ```http
 Authorization: Bearer xxxxx.yyyyy.zzzzz
@@ -343,33 +337,13 @@ token不正:
 
 ## セッションCookie方式との関係
 
-JWT化の実装中は、セッションCookie方式をすぐには削除しません。
-
-理由:
-
-- 現在のローカル結合確認済みの動作を壊さずに比較できる。
-- JWT化で問題が出た場合、既存方式に戻して切り分けできる。
-- Spring Securityの設定差分を学習しやすい。
-
-ただし、最終的な主方式はJWT Bearer認証に寄せます。
-セッションCookie方式は、移行期間と学習用の比較対象として残します。
-
-Phase8完了時の目標は以下です。
+移行確認が完了したため、セッションCookie認証は削除しました。
 
 ```text
-開発・将来公開の主方式: JWT
-セッションCookie方式: 移行期間とローカル学習用として残す
+開発・将来公開の認証方式: JWT Bearer
+HTTPセッション: 作成しない
 localStorage: 認証ではなく未ログインスコア保存用として残す
 ```
-
-今後削除を検討するタイミング:
-
-- FE/BE別ホスト構成でJWT認証が安定した後。
-- Swagger UI、curl、FE画面からJWT認証APIを一通り確認した後。
-- セッションCookie方式のテストが学習目的を終えた後。
-
-削除する場合は、`SessionCreationPolicy.IF_REQUIRED`、ログイン時のHTTPセッション保存、`credentials: "include"` 前提のFE実装、セッション方式のテストをまとめて整理します。
-残す場合は、「JWTが主方式、セッションCookieはローカル学習・互換用」とREADME/docsに明記し続けます。
 
 ## 検討事項
 
@@ -378,11 +352,10 @@ localStorage: 認証ではなく未ログインスコア保存用として残す
 - refresh token を使うか
 - token保存場所を `sessionStorage` で開始して問題ないか
 - XSS対策
-- ログアウト時のtoken破棄
+- refresh tokenを導入する場合の失効方式
 - 期限切れ時のFE表示
 - 未ログイン時の `fieldErrors` 形式
 - Swagger UIでJWTを試す方法
-- 既存セッションCookie方式をいつ削除するか
 
 ## 影響範囲
 
@@ -420,7 +393,8 @@ src/views/LoginPage.vue
 9. `/api/me/**` をJWT認証で保護する。完了。
 10. 未ログイン、期限切れ、改ざんtokenのエラーレスポンスを確認する。一部完了。
 11. BE / FEのテストを追加する。一部完了。
-12. セッションCookie方式を残すか削除するか判断する。
+12. セッションCookie方式を削除し、JWT Bearer認証へ一本化する。完了。
+13. issuer検証と、ログアウト時のトークン世代更新を追加する。完了。
 
 ## 完了条件
 
