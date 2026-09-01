@@ -436,7 +436,7 @@ Status:
 - 本番用CORS設定を整理する。
 - `application-prod` と環境変数でDB接続情報を切り替える。
 - GitHub PagesからバックエンドAPIへ接続する前提で設定を整理する。
-- 起動手順、環境変数、確認手順をREADME/docsにまとめる。
+- 公開可能な起動概要はREADMEに、詳細な環境変数・運用手順は公開リポジトリ外の資料にまとめる。
 
 Status: 完了。`application-prod.yml` を追加し、環境変数、CORS、JWT secret、Swagger公開範囲を本番用に分離しています。詳細な運用手順は公開リポジトリ外で管理しています。
 
