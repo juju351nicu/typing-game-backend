@@ -7,7 +7,7 @@ typingGame のバックエンドAPIです。
 ## 技術構成
 
 - Java 25
-- Spring Boot 4.0.7
+- Spring Boot 4.1.1
 - Maven
 - Spring Web
 - Spring Data JPA

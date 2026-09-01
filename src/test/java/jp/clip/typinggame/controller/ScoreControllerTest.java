@@ -396,7 +396,7 @@ class ScoreControllerTest {
                 .andReturn();
         return objectMapper.readTree(loginResult.getResponse().getContentAsString())
                 .get("accessToken")
-                .asText();
+                .asString();
     }
 
     /** Authorizationヘッダー用のBearer token文字列を返します。 */

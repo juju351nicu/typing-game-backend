@@ -291,7 +291,7 @@ class AuthControllerTest {
         // JWT認証のテストで再利用するため、レスポンスJSONからaccessTokenだけを取り出します。
         return objectMapper.readTree(loginResult.getResponse().getContentAsString())
                 .get("accessToken")
-                .asText();
+                .asString();
     }
 
     /**

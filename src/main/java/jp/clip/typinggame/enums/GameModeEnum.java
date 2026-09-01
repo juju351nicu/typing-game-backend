@@ -39,7 +39,7 @@ public enum GameModeEnum implements CodeEnum<Integer> {
 
     /** キー値からenumを高速に取得するためのMapです。 */
     private static final Map<Integer, GameModeEnum> KEY_MAP = Arrays.stream(values())
-            .collect(Collectors.toUnmodifiableMap(GameModeEnum::getKey, gameMode -> gameMode));
+            .collect(Collectors.toUnmodifiableMap(gameMode -> gameMode.getKey(), gameMode -> gameMode));
 
     /**
      * APIやDBに保存する外向きのコード値を取得します。

@@ -155,7 +155,7 @@ class MyScoreControllerTest {
 
         return objectMapper.readTree(loginResult.getResponse().getContentAsString())
                 .get("accessToken")
-                .asText();
+                .asString();
     }
 
     /**
