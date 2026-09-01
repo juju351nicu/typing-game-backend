@@ -33,7 +33,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    /** JWTのsubjectからログインユーザー情報を復元するサービスです。 */
+    /** JWTのsubjectに設定したユーザーIDからログインユーザー情報を復元するサービスです。 */
     private final LoginUserDetailsService loginUserDetailsService;
 
     /**
@@ -63,8 +63,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users", "/api/auth/login").permitAll()
-                .requestMatchers("/api/scores/**").permitAll()
-                .requestMatchers("/api/rankings/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/scores/**", "/api/rankings/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/scores").authenticated()
                 .anyRequest().authenticated());
 
         return http.build();

@@ -31,6 +31,25 @@ public class LoginUserDetailsService implements UserDetailsService {
         User user = userRepository.findByLoginEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("ユーザーが見つかりません。"));
 
+        return toLoginUserDetails(user);
+    }
+
+    /**
+     * ユーザーIDからJWT認証用ユーザー情報を取得します。
+     *
+     * @param userId ユーザーID
+     * @return 認証用ユーザー情報
+     * @throws UsernameNotFoundException ユーザーが存在しない場合
+     */
+    public LoginUserDetails loadUserById(long userId) throws UsernameNotFoundException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("ユーザーが見つかりません。"));
+
+        return toLoginUserDetails(user);
+    }
+
+    /** ユーザーEntityをSpring Security用のユーザー情報へ変換します。 */
+    private LoginUserDetails toLoginUserDetails(User user) {
         LoginUserDetails userDetails = new LoginUserDetails();
         userDetails.setUserId(user.getId());
         userDetails.setUsername(user.getLoginEmail());

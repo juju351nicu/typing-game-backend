@@ -224,9 +224,11 @@ GET /api/scores
 ```http
 POST /api/scores
 Content-Type: application/json
+Authorization: Bearer {token}
 ```
 
-ゲーム終了時のスコアを保存します。
+ゲーム終了時のスコアをログイン中ユーザーに紐づけて保存します。
+未ログインの場合は `401 Unauthorized` になります。
 
 リクエスト例:
 
@@ -371,7 +373,7 @@ limit=20
 - APIエラーは `fieldErrors` 形式で返し、FE側は同じ形式でエラー表示する。
 - ログイン成功時の `accessToken` をFEの `sessionStorage` に保持し、`Authorization: Bearer {token}` でログインユーザー向けAPIを呼び出す。
 - BEはステートレスなJWT Bearer認証のみを使い、セッションCookie認証は使わない。
-- 現行FEは互換上 `credentials: "include"` を指定しているが、BEはCookieを認証に利用しない。
+- FE・BEともCookieを送受信せず、CORSの資格情報許可も無効にする。
 - localStorageは認証方式ではなく、FE側の未ログインスコア保存・API失敗時fallbackとして扱う。
 
 ## 今後の実装順
@@ -398,12 +400,6 @@ Status: 完了。`npm run dev:api` で `http://localhost:8081` に固定してAP
 ### Phase 8: JWT化
 
 目安は3日〜1週間です。
-
-詳細計画:
-
-```text
-docs/jwt-migration-plan.md
-```
 
 - ログイン成功時にJWTを発行する。
 - フロントエンドから `Authorization` ヘッダーでログインユーザー向けAPIを呼び出す。
@@ -442,7 +438,7 @@ Status:
 - GitHub PagesからバックエンドAPIへ接続する前提で設定を整理する。
 - 起動手順、環境変数、確認手順をREADME/docsにまとめる。
 
-Status: 完了。`application-prod.yml` を追加し、本番公開前に整理する環境変数、CORS、JWT secret、Swagger公開範囲、セッションCookie方式の扱いを `docs/phase9-production-readiness-plan.md` にまとめています。EC2学習へ進む前の確認事項は `docs/phase10-ec2-deployment-checklist.md` に整理しています。
+Status: 完了。`application-prod.yml` を追加し、環境変数、CORS、JWT secret、Swagger公開範囲を本番用に分離しています。詳細な運用手順は公開リポジトリ外で管理しています。
 
 ### Phase 9.5: ローカルMySQLのDocker Compose固定
 
@@ -466,7 +462,7 @@ Status: 実装済み。`compose.yml` でMySQL 8.4を固定し、Spring Bootは�
 - セキュリティグループ、ポート、HTTPSを確認する。
 - GitHub PagesのFEからEC2上のBEへ疎通確認する。
 
-Status: Phase9.5のDocker Compose MySQL固定後に着手します。最初はEC2 1台にJava / MySQL / Nginxを置き、手動デプロイで `prod` profileの起動、Nginx経由のAPI疎通、HTTPS、GitHub Pages FEからのJWT Bearer認証確認を順に進める方針です。詳細は `docs/phase10-ec2-deployment-checklist.md` にまとめています。
+Status: EC2 1台にJava / MySQL / Nginxを置き、`prod` profile、Nginx経由のAPI疎通、HTTPS、GitHub Pages FEからのJWT Bearer認証を確認済みです。詳細な運用手順は公開リポジトリ外で管理しています。
 
 ### 後続フェーズの考え方
 
@@ -479,6 +475,4 @@ API数が増え、FE/BEの型同期コストが大きくなった段階で再検
 
 ## 実装方針
 
-詳しいコーディング方針は以下を参照してください。
-
-- [docs/coding-guidelines.md](docs/coding-guidelines.md)
+詳細なコーディング規約と運用資料は、公開リポジトリ外で管理しています。

@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class JwtLoginUserDetailsConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
-    /** JWTのsubjectからログインユーザー情報を取得するサービスです。 */
+    /** JWTのsubjectに設定したユーザーIDからログインユーザー情報を取得するサービスです。 */
     private final LoginUserDetailsService loginUserDetailsService;
 
     /**
@@ -29,13 +29,20 @@ public class JwtLoginUserDetailsConverter implements Converter<Jwt, AbstractAuth
      */
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
-        String loginEmail = jwt.getSubject();
-        if (StringUtils.isBlank(loginEmail)) {
+        String subject = jwt.getSubject();
+        if (StringUtils.isBlank(subject)) {
             throw new BadCredentialsException("JWT subjectが空です。");
         }
 
-        // JWTのsubjectにはログインメールアドレスを入れているため、既存のUserDetailsServiceで復元します。
-        LoginUserDetails userDetails = (LoginUserDetails) loginUserDetailsService.loadUserByUsername(loginEmail);
+        long userId;
+        try {
+            userId = Long.parseLong(subject);
+        } catch (NumberFormatException exception) {
+            throw new BadCredentialsException("JWT subjectが不正です。", exception);
+        }
+
+        // JWTに個人情報を含めず、変更されない内部ユーザーIDから認証情報を復元します。
+        LoginUserDetails userDetails = loginUserDetailsService.loadUserById(userId);
         Number tokenVersion = jwt.getClaim(JwtTokenService.TOKEN_VERSION_CLAIM);
         if (tokenVersion == null || tokenVersion.longValue() != userDetails.getTokenVersion()) {
             throw new BadCredentialsException("JWTは失効しています。");

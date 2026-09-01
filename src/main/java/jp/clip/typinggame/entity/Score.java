@@ -41,7 +41,7 @@ public class Score {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** スコアを保存したユーザーです。未ログイン時の公開スコアではnullになります。 */
+    /** スコアを保存したユーザーです。移行前の既存データではnullの場合があります。 */
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;

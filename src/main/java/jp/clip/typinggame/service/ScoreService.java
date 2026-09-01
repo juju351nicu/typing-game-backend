@@ -31,18 +31,6 @@ public class ScoreService {
     private final ScoreRepository scoreRepository;
 
     /**
-     * スコア情報を保存します。
-     *
-     * @param request 保存するスコア情報
-     * @return 保存後のスコア情報
-     */
-    @Transactional
-    public ScoreResponse save(SaveScoreRequest request) {
-        Score score = toScoreEntity(request);
-        return toResponse(scoreRepository.save(score));
-    }
-
-    /**
      * ログインユーザーに紐づくスコア情報を保存します。
      *
      * @param request 保存するスコア情報

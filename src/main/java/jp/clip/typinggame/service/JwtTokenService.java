@@ -39,13 +39,12 @@ public class JwtTokenService {
         Instant issuedAt = Instant.now();
         Instant expiresAt = issuedAt.plusSeconds(jwtProperties.getExpiresInSeconds());
 
-        // subjectはログインメールアドレス、userIdはアプリ内のユーザー特定用claimとして持たせます。
+        // JWTは暗号化されないため、subjectにはメールアドレスではなく内部ユーザーIDだけを持たせます。
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(jwtProperties.getIssuer())
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
-                .subject(userDetails.getUsername())
-                .claim("userId", userDetails.getUserId())
+                .subject(String.valueOf(userDetails.getUserId()))
                 .claim(TOKEN_VERSION_CLAIM, userDetails.getTokenVersion())
                 .build();
 

@@ -2,6 +2,7 @@ services:
   mysql:
     image: mysql:8.4
     container_name: typing-game-mysql
+    restart: unless-stopped
     ports:
       - "127.0.0.1:3306:3306"
     environment:

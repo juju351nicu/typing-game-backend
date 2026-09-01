@@ -3,6 +3,7 @@ package jp.clip.typinggame.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,8 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jp.clip.typinggame.dto.SaveScoreRequest;
 import jp.clip.typinggame.dto.ScoreResponse;
+import jp.clip.typinggame.entity.User;
+import jp.clip.typinggame.service.CurrentUserService;
 import jp.clip.typinggame.service.ScoreService;
 import lombok.RequiredArgsConstructor;
 
@@ -32,16 +35,21 @@ public class ScoreController {
     /** スコア情報の業務処理を行うサービスです。 */
     private final ScoreService scoreService;
 
+    /** ログイン中ユーザーを取得するサービスです。 */
+    private final CurrentUserService currentUserService;
+
     /**
      * ゲーム終了時のスコア情報を保存します。
      *
      * @param request 保存するスコア情報
+     * @param authentication 認証情報
      * @return 保存後のスコア情報
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ScoreResponse save(@Valid @RequestBody SaveScoreRequest request) {
-        return scoreService.save(request);
+    public ScoreResponse save(@Valid @RequestBody SaveScoreRequest request, Authentication authentication) {
+        User user = currentUserService.findAuthenticatedUser(authentication);
+        return scoreService.saveForUser(request, user);
     }
 
     /**

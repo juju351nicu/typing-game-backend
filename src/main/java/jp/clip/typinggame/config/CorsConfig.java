@@ -36,8 +36,8 @@ public class CorsConfig {
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type", "Accept", "Authorization", "X-Requested-With"));
-        // 現行FEはcredentials: includeでfetchするため許可します。認証自体はCookieではなくBearer tokenのみです。
-        config.setAllowCredentials(true);
+        // 認証はBearer tokenのみでCookieを使わないため、資格情報付きCORSリクエストは許可しません。
+        config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);

@@ -1,5 +1,6 @@
 package jp.clip.typinggame.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -21,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.context.ActiveProfiles;
@@ -55,6 +57,9 @@ class AuthControllerTest {
 
     @Autowired
     private JwtEncoder jwtEncoder;
+
+    @Autowired
+    private JwtDecoder jwtDecoder;
 
     /**
      * 各テスト実行前にスコアテーブルとユーザーテーブルを空にします。
@@ -93,8 +98,11 @@ class AuthControllerTest {
 
         String accessToken = extractAccessToken(loginResult);
         assertNull(loginResult.getRequest().getSession(false));
+        Long userId = userRepository.findByLoginEmail("user@example.com").orElseThrow().getId();
+        assertEquals(String.valueOf(userId), jwtDecoder.decode(accessToken).getSubject());
+        assertNull(jwtDecoder.decode(accessToken).getClaim("userId"));
 
-        // ログインレスポンスのJWTだけで同じユーザーを復元できることを確認します。
+        // 個人情報を含まないユーザーID subjectのJWTだけで同じユーザーを復元できることを確認します。
         mockMvc.perform(get("/api/auth/me")
                 .header(HttpHeaders.AUTHORIZATION, toBearerToken(accessToken)))
                 .andExpect(status().isOk())
@@ -159,7 +167,27 @@ class AuthControllerTest {
     @DisplayName("GET /api/auth/me はissuerが異なるBearer tokenの場合401を返す")
     void meReturnsUnauthorizedWhenIssuerDoesNotMatch() throws Exception {
         registerUser("user@example.com", "password123");
-        String accessToken = createAccessToken("another-issuer", "user@example.com", 0);
+        Long userId = userRepository.findByLoginEmail("user@example.com").orElseThrow().getId();
+        String accessToken = createAccessToken("another-issuer", String.valueOf(userId), 0);
+
+        mockMvc.perform(get("/api/auth/me")
+                .header(HttpHeaders.AUTHORIZATION, toBearerToken(accessToken)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.fieldErrors[0].message").value("ログインしてください。"));
+    }
+
+    /**
+     * subjectがユーザーIDでない署名済みJWTを拒否することを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("GET /api/auth/me はsubjectが数値でないBearer tokenの場合401を返す")
+    void meReturnsUnauthorizedWhenSubjectIsNotUserId() throws Exception {
+        String accessToken = createAccessToken(
+                "typing-game-backend-test",
+                "user@example.com",
+                0);
 
         mockMvc.perform(get("/api/auth/me")
                 .header(HttpHeaders.AUTHORIZATION, toBearerToken(accessToken)))

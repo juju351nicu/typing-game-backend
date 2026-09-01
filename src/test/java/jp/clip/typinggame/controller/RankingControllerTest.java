@@ -2,12 +2,8 @@ package jp.clip.typinggame.controller;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,12 +11,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import tools.jackson.databind.ObjectMapper;
-
+import jp.clip.typinggame.entity.Score;
+import jp.clip.typinggame.enums.GameModeEnum;
+import jp.clip.typinggame.enums.GameRuleEnum;
 import jp.clip.typinggame.repository.ScoreRepository;
 
 /**
@@ -34,9 +30,6 @@ class RankingControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private ScoreRepository scoreRepository;
@@ -117,23 +110,18 @@ class RankingControllerTest {
      * @param mode 難易度
      * @param gameRule ゲームルール
      * @param timeLimitSeconds タイムアタック時の制限時間（秒）
-     * @throws Exception MockMvc実行時に例外が発生した場合
      */
-    private void saveScore(String time, int score, int mode, String gameRule, Integer timeLimitSeconds) throws Exception {
-        Map<String, Object> request = new HashMap<>();
-        request.put("time", time);
-        request.put("score", score);
-        request.put("mode", mode);
-        request.put("gameRule", gameRule);
-        request.put("timeLimitSeconds", timeLimitSeconds);
-        request.put("wpm", 32);
-        request.put("accuracy", 96);
-        request.put("missCount", 2);
-        request.put("correctCharacterCount", 80);
-
-        mockMvc.perform(post("/api/scores")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
+    private void saveScore(String time, int scoreValue, int mode, String gameRule, Integer timeLimitSeconds) {
+        Score score = new Score();
+        score.setTime(time);
+        score.setScore(scoreValue);
+        score.setMode(GameModeEnum.fromKey(mode));
+        score.setGameRule(GameRuleEnum.fromKey(gameRule));
+        score.setTimeLimitSeconds(timeLimitSeconds);
+        score.setWpm(32);
+        score.setAccuracy(96);
+        score.setMissCount(2);
+        score.setCorrectCharacterCount(80);
+        scoreRepository.save(score);
     }
 }
