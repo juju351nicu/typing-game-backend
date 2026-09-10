@@ -203,7 +203,7 @@ API通信に失敗してもlocalStorage側の結果と画面表示は維持さ�
 ## 今後の改善
 
 - Spring Bootアプリ本体のコンテナ化
-- 短命access token + refresh tokenの要否検討
+- refresh token導入の要否検討
 
 ## 実装方針
 
