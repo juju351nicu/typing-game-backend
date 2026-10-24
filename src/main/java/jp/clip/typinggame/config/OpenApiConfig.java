@@ -15,7 +15,7 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 @OpenAPIDefinition(info = @Info(
         title = "typing-game-backend API",
         version = "0.0.1",
-        description = "typingGameのスコア保存、ユーザー登録、ログインを扱うAPIです。"),
+        description = "typingGameのスコア保存、ユーザー登録、ログイン、通知を扱うAPIです。"),
         security = @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH_SECURITY_SCHEME))
 @SecurityScheme(
         name = OpenApiConfig.BEARER_AUTH_SECURITY_SCHEME,

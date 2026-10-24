@@ -50,6 +50,7 @@ Spring Bootは `127.0.0.1` にbindし、外部からのアクセスはNginx経�
 - ログアウト時のトークン世代更新による、発行済みJWTの失効
 - 一般ユーザー / 管理者の権限管理（`/api/admin/**` は管理者のみ）
 - ログインユーザーに紐づくスコアの保存・取得
+- 管理者が送信するお知らせ通知（全ユーザー宛て / 個人宛て）と、未読件数・既読管理
 - 難易度、ゲームルール、制限時間で絞り込むランキング取得（認証不要）
 - validationエラー・認証エラーを共通の `fieldErrors` 形式で返すエラーレスポンス
 - CORS許可Origin、DB接続情報、JWT secretの環境変数切り替え
@@ -109,6 +110,7 @@ src/main/resources/db/vendor/mysql     MySQL専用migration
 - `V2__insert_sample_scores.sql`: サンプルスコア投入
 - `V4__add_token_version_to_users.sql`: JWT失効用のトークン世代カラム追加
 - `V5__add_role_to_users.sql`: ユーザー権限カラム追加（既定値 `user`）
+- `V6__create_notifications.sql`: 通知と、ユーザーごとの通知確認状態のテーブル追加
 
 既存ローカルDBの補正migrationはMySQL専用のため `db/vendor/mysql` に分離し、H2を使うテストでは実行されないようにしています。
 `flyway_schema_history` がないDBは、`baseline-on-migrate` で現在の状態を基準化してからmigrationを実行します。
@@ -138,7 +140,7 @@ UPDATE users SET role = 'admin' WHERE login_email = 'admin@example.com';
 ```
 
 JWT認証ではリクエストごとにDBからユーザーを読み直すため、権限の付与・剥奪は再ログインを待たずに次のリクエストから反映されます。
-管理用APIは `/api/admin/**` 配下に置き、`SecurityConfig` で管理者だけに許可します。権限不足の場合は `403` を `fieldErrors` 形式で返します。
+`/api/admin/**` は `SecurityConfig` で管理者だけに許可し、権限不足の場合は `403` を `fieldErrors` 形式で返します。
 
 ## 本番設定
 
@@ -180,8 +182,15 @@ EC2上での配置、systemdのユニット定義、Nginxの設定などの運�
 | POST | `/api/me/scores` | 必要 | ログインユーザーのスコア保存 |
 | GET | `/api/me/scores` | 必要 | ログインユーザーのスコア一覧取得 |
 | GET | `/api/rankings` | 不要 | ランキング取得 |
+| GET | `/api/me/notifications` | 必要 | 自分宛て・全体宛ての通知一覧取得（既読化しない） |
+| GET | `/api/me/notifications/unread-count` | 必要 | 通知の未読件数取得 |
+| POST | `/api/me/notifications/mark-read` | 必要 | 通知の既読化 |
+| POST | `/api/admin/notifications` | 管理者 | 通知の送信 |
+| GET | `/api/admin/notifications` | 管理者 | 送信済み通知の一覧取得 |
 
 `GET /api/rankings` は `mode`、`gameRule`、`timeLimitSeconds`、`limit` で絞り込め、スコア降順、クリアタイム昇順、作成日時降順で返します。
+
+通知一覧・未読件数は直近30日の通知が対象で、一覧は新しい順に最大50件を返します。
 
 リクエスト・レスポンスの詳細はSwagger UIを参照してください。
 
@@ -205,7 +214,7 @@ Swagger関連のパスは `SecurityConfig` で認証不要にしていますが�
 ./mvnw test
 ```
 
-MockMvcによるControllerテストを中心に、8ファイル / 33テストで、ユーザー登録、ログイン、JWT検証、認証・認可エラー時のレスポンス形式、スコア保存・取得、ランキングの絞り込みを検証しています。
+MockMvcによるControllerテストを中心に、10ファイル / 46テストで、ユーザー登録、ログイン、JWT検証、認証・認可エラー時のレスポンス形式、スコア保存・取得、ランキングの絞り込み、管理者による通知送信、通知の宛先・既読管理を検証しています。
 テストDBはMySQLではなくH2のMySQL互換モードを使い、テーブルは本番と同じFlyway migrationから作成します。
 
 ## フロントエンド連携
@@ -225,6 +234,10 @@ API通信に失敗してもlocalStorage側の結果と画面表示は維持さ�
 - HTTPセッションを作らない `STATELESS` 設定にし、Cookieを使わないためCORSの `allowCredentials` も無効にしています。
 - JWT secretが32文字未満の場合は起動時に例外にして、ローカルでも署名鍵の最低長をそろえています。
 - validationエラー、リクエスト形式エラー、認証エラーをすべて `fieldErrors` 形式へそろえ、フロントエンド側のエラー表示を共通化しています。
+- 通知の既読は「通知 × ユーザー」ではなく、ユーザーと通知種別ごとの最終確認日時1行で管理しています。未読判定は「通知の作成日時 > 最終確認日時」の比較だけで済み、既読テーブルの行数も通知数ではなくユーザー数に比例します。
+- 全ユーザー宛ての通知は `user_id` をNULLにした1行で表現し、ユーザー数に関係なく通知の行数を増やさないようにしています。
+- 未読件数APIはFEから定期的に呼ばれるため、確認状態の行が無い場合は十分過去の日時を使って全件未読と判定し、読み取りAPIからINSERTの副作用を取り除いています。行の作成は既読化APIだけが行います。
+- 既読化は `INSERT ... ON DUPLICATE KEY UPDATE` の単一SQLにし、同じユーザーが複数タブから同時に既読化しても主キー制約違反にならないようにしています。
 - ログアウト時のトークン世代は `token_version = token_version + 1` とSQL上で加算し、同時実行時に更新が失われないようにしています。
 - MySQL固有の補正migrationを `db/vendor/{vendor}` へ分離し、H2を使うテストに影響させずに本番と同じmigrationでテーブルを作成しています。
 - prod profileでは `server.address` を `127.0.0.1` に固定し、Swagger UIも既定で無効にして、公開経路をNginx経由のAPIだけに絞っています。

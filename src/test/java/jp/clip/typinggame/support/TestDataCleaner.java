@@ -23,6 +23,8 @@ public final class TestDataCleaner {
      */
     public static void deleteAll(JdbcTemplate jdbcTemplate) {
         JdbcTestUtils.deleteFromTables(jdbcTemplate,
+                "user_notification_states",
+                "notifications",
                 "scores",
                 "users");
     }
