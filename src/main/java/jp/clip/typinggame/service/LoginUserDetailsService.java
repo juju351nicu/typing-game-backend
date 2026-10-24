@@ -55,6 +55,7 @@ public class LoginUserDetailsService implements UserDetailsService {
         userDetails.setUsername(user.getLoginEmail());
         userDetails.setPassword(user.getPassword());
         userDetails.setTokenVersion(user.getTokenVersion());
+        userDetails.setRole(user.getRole());
         return userDetails;
     }
 }

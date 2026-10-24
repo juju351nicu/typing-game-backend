@@ -48,6 +48,7 @@ Spring Bootは `127.0.0.1` にbindし、外部からのアクセスはNginx経�
 - ユーザー登録（パスワードはBCryptでハッシュ化して保存）
 - ログイン時のJWTアクセストークン発行と、`Authorization: Bearer {token}` による認証
 - ログアウト時のトークン世代更新による、発行済みJWTの失効
+- 一般ユーザー / 管理者の権限管理（`/api/admin/**` は管理者のみ）
 - ログインユーザーに紐づくスコアの保存・取得
 - 難易度、ゲームルール、制限時間で絞り込むランキング取得（認証不要）
 - validationエラー・認証エラーを共通の `fieldErrors` 形式で返すエラーレスポンス
@@ -107,6 +108,7 @@ src/main/resources/db/vendor/mysql     MySQL専用migration
 - `V1__create_initial_schema.sql`: 初期テーブル定義
 - `V2__insert_sample_scores.sql`: サンプルスコア投入
 - `V4__add_token_version_to_users.sql`: JWT失効用のトークン世代カラム追加
+- `V5__add_role_to_users.sql`: ユーザー権限カラム追加（既定値 `user`）
 
 既存ローカルDBの補正migrationはMySQL専用のため `db/vendor/mysql` に分離し、H2を使うテストでは実行されないようにしています。
 `flyway_schema_history` がないDBは、`baseline-on-migrate` で現在の状態を基準化してからmigrationを実行します。
@@ -125,6 +127,18 @@ src/main/resources/META-INF/jp/clip/typinggame/dao     DAOのメソッドごと�
 - `GameModeEnum` などのenumはDomaの `@Domain` として、`fromKey` / `getKey` でDBのコード値と相互変換します。
 - 小規模なアプリのため、Repositoryインターフェースは挟まず、ServiceからDAOを直接呼び出します。
 - SQL方言は `doma.dialect` で指定し、本番・ローカルは `mysql`、テストは `h2` です。
+
+## 管理者権限
+
+ユーザーは `users.role` に `user`（一般ユーザー）または `admin`（管理者）を持ちます。
+ユーザー登録APIで作成されるのは常に一般ユーザーで、管理者はDBで直接付与します。
+
+```sql
+UPDATE users SET role = 'admin' WHERE login_email = 'admin@example.com';
+```
+
+JWT認証ではリクエストごとにDBからユーザーを読み直すため、権限の付与・剥奪は再ログインを待たずに次のリクエストから反映されます。
+管理用APIは `/api/admin/**` 配下に置き、`SecurityConfig` で管理者だけに許可します。権限不足の場合は `403` を `fieldErrors` 形式で返します。
 
 ## 本番設定
 
@@ -191,7 +205,7 @@ Swagger関連のパスは `SecurityConfig` で認証不要にしていますが�
 ./mvnw test
 ```
 
-MockMvcによるControllerテストを中心に、8ファイル / 33テストで、ユーザー登録、ログイン、JWT検証、認証エラー時のレスポンス形式、スコア保存・取得、ランキングの絞り込みを検証しています。
+MockMvcによるControllerテストを中心に、8ファイル / 33テストで、ユーザー登録、ログイン、JWT検証、認証・認可エラー時のレスポンス形式、スコア保存・取得、ランキングの絞り込みを検証しています。
 テストDBはMySQLではなくH2のMySQL互換モードを使い、テーブルは本番と同じFlyway migrationから作成します。
 
 ## フロントエンド連携

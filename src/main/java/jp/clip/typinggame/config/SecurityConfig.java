@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -20,13 +21,14 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jp.clip.typinggame.enums.UserRoleEnum;
 import jp.clip.typinggame.service.LoginUserDetailsService;
 import lombok.RequiredArgsConstructor;
 
 /**
  * Spring Securityの認証・認可設定です。
  *
- * JWT Bearer認証、APIごとの認可ルール、認証失敗時のレスポンスを設定します。
+ * JWT Bearer認証、APIごとの認可ルール、認証・認可失敗時のレスポンスを設定します。
  */
 @Configuration
 @EnableWebSecurity
@@ -53,17 +55,21 @@ public class SecurityConfig {
         http.httpBasic(basic -> basic.disable());
         http.oauth2ResourceServer(oauth2 -> oauth2
                 .authenticationEntryPoint(this::writeUnauthorizedResponse)
+                .accessDeniedHandler(this::writeForbiddenResponse)
                 .jwt(jwt -> jwt.jwtAuthenticationConverter(
                         new JwtLoginUserDetailsConverter(loginUserDetailsService))));
         http.exceptionHandling(exception -> exception
-                .authenticationEntryPoint(this::writeUnauthorizedResponse));
+                .authenticationEntryPoint(this::writeUnauthorizedResponse)
+                .accessDeniedHandler(this::writeForbiddenResponse));
 
         // 公開APIと認証必須APIを分け、/api/me/** などはJWT認証を要求します。
+        // /api/admin/** は管理者だけが呼び出せます。管理用APIはこのパス配下に置きます。
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/users", "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/rankings/**").permitAll()
+                .requestMatchers("/api/admin/**").hasRole(UserRoleEnum.ADMIN.name())
                 .anyRequest().authenticated());
 
         return http.build();
@@ -87,6 +93,27 @@ public class SecurityConfig {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.getWriter().write("""
                 {"fieldErrors":[{"errorCode":"UNAUTHORIZED","field":"","message":"ログインしてください。"}]}
+                """);
+    }
+
+    /**
+     * 権限不足時のレスポンスを書き込みます。
+     *
+     * @param request HTTPリクエスト
+     * @param response HTTPレスポンス
+     * @param accessDeniedException 認可例外
+     * @throws java.io.IOException レスポンス書き込みに失敗した場合
+     */
+    private void writeForbiddenResponse(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AccessDeniedException accessDeniedException) throws java.io.IOException {
+        // 401と同じfieldErrors形式にそろえ、FE側で権限不足を判別できるようにします。
+        response.setStatus(HttpStatus.FORBIDDEN.value());
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write("""
+                {"fieldErrors":[{"errorCode":"FORBIDDEN","field":"","message":"この操作を行う権限がありません。"}]}
                 """);
     }
 

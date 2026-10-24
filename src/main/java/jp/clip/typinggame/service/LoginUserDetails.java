@@ -4,8 +4,10 @@ import java.util.Collection;
 import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import jp.clip.typinggame.enums.UserRoleEnum;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,14 +33,25 @@ public class LoginUserDetails implements UserDetails {
     /** 発行済みJWTの有効性を判定するトークン世代です。 */
     private long tokenVersion;
 
+    /** ユーザー権限です。 */
+    private UserRoleEnum role;
+
     /**
      * ユーザーに付与されている権限を返します。
+     *
+     * <p>
+     * JWT認証ではリクエストごとにDBからユーザーを読み直すため、
+     * 権限を変更した場合も再ログインを待たずに次のリクエストから反映されます。
+     * </p>
      *
      * @return 権限一覧
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        if (role == null) {
+            return List.of();
+        }
+        return List.of(new SimpleGrantedAuthority(role.getAuthority()));
     }
 
     /**

@@ -14,6 +14,7 @@ import jp.clip.typinggame.dao.UserDao;
 import jp.clip.typinggame.dto.RegisterUserRequest;
 import jp.clip.typinggame.dto.UserResponse;
 import jp.clip.typinggame.entity.User;
+import jp.clip.typinggame.enums.UserRoleEnum;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -61,6 +62,7 @@ public class UserService {
         UserResponse response = new UserResponse();
         response.setId(user.getId());
         response.setLoginEmail(user.getLoginEmail());
+        response.setRole(user.getRole());
         return response;
     }
 
@@ -74,6 +76,8 @@ public class UserService {
         User user = new User();
         user.setLoginEmail(request.getLoginEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        // 管理者はAPIから登録できないため、新規登録は常に一般ユーザーです。
+        user.setRole(UserRoleEnum.USER);
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
