@@ -4,12 +4,6 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      "[hibernate.format_sql]": false
-    open-in-view: false
   sql:
     init:
       mode: never

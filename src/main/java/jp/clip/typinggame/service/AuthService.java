@@ -1,6 +1,7 @@
 package jp.clip.typinggame.service;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import jp.clip.typinggame.dao.UserDao;
 import jp.clip.typinggame.dto.LoginRequest;
 import jp.clip.typinggame.dto.LoginResponse;
 import jp.clip.typinggame.dto.UserResponse;
@@ -36,6 +38,9 @@ public class AuthService {
     /** JWTアクセストークンを生成するサービスです。 */
     private final JwtTokenService jwtTokenService;
 
+    /** ユーザー情報へアクセスするDAOです。 */
+    private final UserDao userDao;
+
     /**
      * ログイン認証を行い、JWTアクセストークンを発行します。
      *
@@ -53,7 +58,9 @@ public class AuthService {
         }
 
         User user = currentUserService.findAuthenticatedUser(authentication);
-        user.setLastLoginAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        userDao.updateLastLoginAt(user.getId(), now);
+        user.setLastLoginAt(now);
 
         LoginResponse response = new LoginResponse();
         response.setUser(userService.toResponse(user));
@@ -71,7 +78,7 @@ public class AuthService {
     @Transactional
     public void logout(Authentication authentication) {
         User user = currentUserService.findAuthenticatedUser(authentication);
-        user.setTokenVersion(user.getTokenVersion() + 1);
+        userDao.incrementTokenVersion(user.getId(), LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
     }
 
     /**

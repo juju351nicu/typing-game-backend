@@ -5,19 +5,23 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import jp.clip.typinggame.dao.ScoreDao;
 import jp.clip.typinggame.entity.Score;
 import jp.clip.typinggame.enums.GameModeEnum;
 import jp.clip.typinggame.enums.GameRuleEnum;
-import jp.clip.typinggame.repository.ScoreRepository;
+import jp.clip.typinggame.support.TestDataCleaner;
 
 /**
  * ランキングAPIのController層を確認するテストです。
@@ -32,14 +36,17 @@ class RankingControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ScoreRepository scoreRepository;
+    private ScoreDao scoreDao;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     /**
      * 各テスト実行前にスコアテーブルを空にします。
      */
     @BeforeEach
     void setUp() {
-        scoreRepository.deleteAll();
+        TestDataCleaner.deleteAll(jdbcTemplate);
     }
 
     /**
@@ -122,6 +129,7 @@ class RankingControllerTest {
         score.setAccuracy(96);
         score.setMissCount(2);
         score.setCorrectCharacterCount(80);
-        scoreRepository.save(score);
+        score.setCreatedAt(LocalDateTime.now());
+        scoreDao.insert(score);
     }
 }

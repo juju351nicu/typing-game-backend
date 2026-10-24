@@ -1,19 +1,20 @@
 package jp.clip.typinggame.service;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jp.clip.typinggame.dao.ScoreDao;
 import jp.clip.typinggame.dto.SaveScoreRequest;
 import jp.clip.typinggame.dto.ScoreResponse;
 import jp.clip.typinggame.entity.Score;
 import jp.clip.typinggame.entity.User;
 import jp.clip.typinggame.enums.GameModeEnum;
 import jp.clip.typinggame.enums.GameRuleEnum;
-import jp.clip.typinggame.repository.ScoreRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -27,8 +28,8 @@ public class ScoreService {
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /** スコア情報へアクセスするRepositoryです。 */
-    private final ScoreRepository scoreRepository;
+    /** スコア情報へアクセスするDAOです。 */
+    private final ScoreDao scoreDao;
 
     /**
      * ログインユーザーに紐づくスコア情報を保存します。
@@ -40,8 +41,10 @@ public class ScoreService {
     @Transactional
     public ScoreResponse saveForUser(SaveScoreRequest request, User user) {
         Score score = toScoreEntity(request);
-        score.setUser(user);
-        return toResponse(scoreRepository.save(score));
+        score.setUserId(user.getId());
+        score.setCreatedAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+        scoreDao.insert(score);
+        return toResponse(score);
     }
 
     /**
@@ -52,7 +55,7 @@ public class ScoreService {
      */
     @Transactional(readOnly = true)
     public List<ScoreResponse> findAllByUser(User user) {
-        return scoreRepository.findAllByUserOrderByCreatedAtDesc(user).stream()
+        return scoreDao.selectByUserId(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -74,11 +77,11 @@ public class ScoreService {
             Integer limit) {
         GameModeEnum gameModeEnum = mode == null ? null : GameModeEnum.fromKey(mode);
         GameRuleEnum gameRuleEnum = gameRule == null ? null : GameRuleEnum.fromKey(gameRule);
-        return scoreRepository.findRankings(
+        return scoreDao.selectRankings(
                 gameModeEnum,
                 gameRuleEnum,
                 timeLimitSeconds,
-                PageRequest.of(0, limit)).stream()
+                limit).stream()
                 .map(this::toResponse)
                 .toList();
     }

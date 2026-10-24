@@ -17,7 +17,7 @@ AWS EC2上でNginxとsystemdを使って公開し、GitHub Pagesのフロント�
 | 分類 | 技術 |
 | --- | --- |
 | 言語 / ビルド | Java 25, Maven |
-| フレームワーク | Spring Boot 4.1.1, Spring Web MVC, Spring Data JPA, Bean Validation, Lombok |
+| フレームワーク | Spring Boot 4.1.1, Spring Web MVC, Doma 3, Bean Validation, Lombok |
 | 認証 | Spring Security, OAuth2 Resource Server (JWT), JOSE |
 | データベース | MySQL 8.4 (Docker Compose), Flyway |
 | API仕様 | springdoc-openapi / Swagger UI |
@@ -97,7 +97,7 @@ Docker MySQLとローカルMySQLはどちらも `3306` を使うため、同時�
 
 ## データベースとFlyway
 
-テーブル定義の作成・変更はFlyway migrationで管理し、JPAは `ddl-auto: validate` でEntityとの差分を検証するだけにしています。
+テーブル定義の作成・変更はFlyway migrationで管理し、DBアクセスはDomaのDAOとSQLファイルで行います。
 
 ```text
 src/main/resources/db/migration        共通migration
@@ -110,6 +110,21 @@ src/main/resources/db/vendor/mysql     MySQL専用migration
 
 既存ローカルDBの補正migrationはMySQL専用のため `db/vendor/mysql` に分離し、H2を使うテストでは実行されないようにしています。
 `flyway_schema_history` がないDBは、`baseline-on-migrate` で現在の状態を基準化してからmigrationを実行します。
+
+## DBアクセス（Doma）
+
+DBアクセスにはDoma 3を使い、SQLはJavaのアノテーションではなくSQLファイルに書きます。
+
+```text
+src/main/java/jp/clip/typinggame/dao                   DAOインターフェース
+src/main/java/jp/clip/typinggame/entity                Doma Entity
+src/main/resources/META-INF/jp/clip/typinggame/dao     DAOのメソッドごとのSQLファイル
+```
+
+- SQLファイルはコンパイル時に注釈処理で検査されるため、DAOの引数名とSQLのバインド変数が合わない場合はビルドで気づけます。
+- `GameModeEnum` などのenumはDomaの `@Domain` として、`fromKey` / `getKey` でDBのコード値と相互変換します。
+- 小規模なアプリのため、Repositoryインターフェースは挟まず、ServiceからDAOを直接呼び出します。
+- SQL方言は `doma.dialect` で指定し、本番・ローカルは `mysql`、テストは `h2` です。
 
 ## 本番設定
 
@@ -177,7 +192,7 @@ Swagger関連のパスは `SecurityConfig` で認証不要にしていますが�
 ```
 
 MockMvcによるControllerテストを中心に、8ファイル / 33テストで、ユーザー登録、ログイン、JWT検証、認証エラー時のレスポンス形式、スコア保存・取得、ランキングの絞り込みを検証しています。
-テストDBはMySQLではなくH2を使い、テーブルは本番と同じFlyway migrationから作成したうえで、JPAがEntityとの差分をvalidateします。
+テストDBはMySQLではなくH2のMySQL互換モードを使い、テーブルは本番と同じFlyway migrationから作成します。
 
 ## フロントエンド連携
 
@@ -196,6 +211,7 @@ API通信に失敗してもlocalStorage側の結果と画面表示は維持さ�
 - HTTPセッションを作らない `STATELESS` 設定にし、Cookieを使わないためCORSの `allowCredentials` も無効にしています。
 - JWT secretが32文字未満の場合は起動時に例外にして、ローカルでも署名鍵の最低長をそろえています。
 - validationエラー、リクエスト形式エラー、認証エラーをすべて `fieldErrors` 形式へそろえ、フロントエンド側のエラー表示を共通化しています。
+- ログアウト時のトークン世代は `token_version = token_version + 1` とSQL上で加算し、同時実行時に更新が失われないようにしています。
 - MySQL固有の補正migrationを `db/vendor/{vendor}` へ分離し、H2を使うテストに影響させずに本番と同じmigrationでテーブルを作成しています。
 - prod profileでは `server.address` を `127.0.0.1` に固定し、Swagger UIも既定で無効にして、公開経路をNginx経由のAPIだけに絞っています。
 - MySQLコンテナのポート公開を `127.0.0.1:3306` に限定しています。DockerのポートフォワードはUFWより先に処理されるため、ファイアウォールではなくbind先で外部公開を防いでいます。

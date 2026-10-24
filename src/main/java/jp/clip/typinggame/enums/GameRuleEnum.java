@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.seasar.doma.Domain;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -20,9 +21,11 @@ import lombok.AllArgsConstructor;
  * APIとDBでは {@code normal} や {@code timeAttack} のようなキー値を使い、
  * Javaコード上では {@link #NORMAL} や {@link #TIME_ATTACK} として扱います。
  * 文字列を直接扱う箇所を減らすことで、入力できる値をこのenumに集約できます。
+ * DBとの相互変換は、Domaのドメインとして {@link #fromKey(String)} と {@link #getKey()} で行います。
  * </p>
  */
 @Schema(description = "ゲームルール", enumAsRef = true)
+@Domain(valueType = String.class, factoryMethod = "fromKey", accessorMethod = "getKey")
 @AllArgsConstructor
 public enum GameRuleEnum implements CodeEnum<String> {
 

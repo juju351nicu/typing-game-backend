@@ -5,8 +5,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import jp.clip.typinggame.dao.UserDao;
 import jp.clip.typinggame.entity.User;
-import jp.clip.typinggame.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -16,8 +16,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LoginUserDetailsService implements UserDetailsService {
 
-    /** ユーザー情報へアクセスするRepositoryです。 */
-    private final UserRepository userRepository;
+    /** ユーザー情報へアクセスするDAOです。 */
+    private final UserDao userDao;
 
     /**
      * ログインメールアドレスから認証用ユーザー情報を取得します。
@@ -28,7 +28,7 @@ public class LoginUserDetailsService implements UserDetailsService {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByLoginEmail(username)
+        User user = userDao.selectByLoginEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("ユーザーが見つかりません。"));
 
         return toLoginUserDetails(user);
@@ -42,7 +42,7 @@ public class LoginUserDetailsService implements UserDetailsService {
      * @throws UsernameNotFoundException ユーザーが存在しない場合
      */
     public LoginUserDetails loadUserById(long userId) throws UsernameNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userDao.selectById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("ユーザーが見つかりません。"));
 
         return toLoginUserDetails(user);

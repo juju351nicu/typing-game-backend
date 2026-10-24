@@ -4,12 +4,6 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME:typing_game_app}
     password: ${DB_PASSWORD:typing_game_password}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      "[hibernate.format_sql]": true
-    open-in-view: false
   sql:
     init:
       mode: never
@@ -20,6 +14,10 @@ spring:
     locations:
       - classpath:db/migration
       - classpath:db/vendor/{vendor}
+
+# DomaのSQL方言です。ページングや識別子のクォートをMySQL向けに生成します。
+doma:
+  dialect: mysql
 
 server:
   address: localhost

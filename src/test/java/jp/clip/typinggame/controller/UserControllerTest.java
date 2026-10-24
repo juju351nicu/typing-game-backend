@@ -13,13 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import tools.jackson.databind.ObjectMapper;
 
-import jp.clip.typinggame.repository.ScoreRepository;
-import jp.clip.typinggame.repository.UserRepository;
+import jp.clip.typinggame.support.TestDataCleaner;
 
 /**
  * ユーザー登録APIのController層を確認するテストです。
@@ -37,18 +37,14 @@ class UserControllerTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ScoreRepository scoreRepository;
+    private JdbcTemplate jdbcTemplate;
 
     /**
      * 各テスト実行前にスコアテーブルとユーザーテーブルを空にします。
      */
     @BeforeEach
     void setUp() {
-        scoreRepository.deleteAll();
-        userRepository.deleteAll();
+        TestDataCleaner.deleteAll(jdbcTemplate);
     }
 
     /**

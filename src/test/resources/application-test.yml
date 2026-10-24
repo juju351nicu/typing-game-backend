@@ -4,10 +4,6 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
   sql:
     init:
       mode: never
@@ -16,6 +12,10 @@ spring:
     locations:
       - classpath:db/migration
       - classpath:db/vendor/{vendor}
+
+# テストはH2のMySQL互換モードで動かすため、DomaもH2の方言にします。
+doma:
+  dialect: h2
 
 app:
   jwt:

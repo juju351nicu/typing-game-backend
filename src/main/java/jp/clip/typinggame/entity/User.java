@@ -2,15 +2,13 @@ package jp.clip.typinggame.entity;
 
 import java.time.LocalDateTime;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.seasar.doma.Entity;
+import org.seasar.doma.GeneratedValue;
+import org.seasar.doma.GenerationType;
+import org.seasar.doma.Id;
+import org.seasar.doma.Table;
+import org.seasar.doma.jdbc.entity.NamingType;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,9 +19,10 @@ import lombok.Setter;
  * <p>
  * {@code users} テーブルの1レコードに対応し、ログインメールアドレス、
  * 暗号化済みパスワード、ログイン日時などを保持します。
+ * カラム名はフィールド名をスネークケースへ変換した名前です。
  * </p>
  */
-@Entity
+@Entity(naming = NamingType.SNAKE_LOWER_CASE)
 @Table(name = "users")
 @Getter
 @Setter
@@ -36,27 +35,20 @@ public class User {
     private Long id;
 
     /** ログインに利用するメールアドレスです。 */
-    @Column(nullable = false, unique = true, length = 255)
     private String loginEmail;
 
     /** BCryptで暗号化したパスワードです。 */
-    @Column(nullable = false, length = 100)
     private String password;
 
     /** 最後にログインした日時です。 */
     private LocalDateTime lastLoginAt;
 
     /** ログアウト時に進め、過去に発行したJWTを無効化する世代番号です。 */
-    @Column(nullable = false)
     private long tokenVersion;
 
     /** ユーザー作成日時です。 */
-    @CreationTimestamp
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     /** ユーザー更新日時です。 */
-    @UpdateTimestamp
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 }

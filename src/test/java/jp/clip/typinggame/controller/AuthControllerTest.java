@@ -19,6 +19,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -31,8 +32,8 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import tools.jackson.databind.ObjectMapper;
 
-import jp.clip.typinggame.repository.ScoreRepository;
-import jp.clip.typinggame.repository.UserRepository;
+import jp.clip.typinggame.dao.UserDao;
+import jp.clip.typinggame.support.TestDataCleaner;
 
 /**
  * 認証APIのController層を確認するテストです。
@@ -50,10 +51,10 @@ class AuthControllerTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserDao userDao;
 
     @Autowired
-    private ScoreRepository scoreRepository;
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private JwtEncoder jwtEncoder;
@@ -66,8 +67,7 @@ class AuthControllerTest {
      */
     @BeforeEach
     void setUp() {
-        scoreRepository.deleteAll();
-        userRepository.deleteAll();
+        TestDataCleaner.deleteAll(jdbcTemplate);
     }
 
     /**
@@ -98,7 +98,7 @@ class AuthControllerTest {
 
         String accessToken = extractAccessToken(loginResult);
         assertNull(loginResult.getRequest().getSession(false));
-        Long userId = userRepository.findByLoginEmail("user@example.com").orElseThrow().getId();
+        Long userId = userDao.selectByLoginEmail("user@example.com").orElseThrow().getId();
         assertEquals(String.valueOf(userId), jwtDecoder.decode(accessToken).getSubject());
         assertNull(jwtDecoder.decode(accessToken).getClaim("userId"));
 
@@ -167,7 +167,7 @@ class AuthControllerTest {
     @DisplayName("GET /api/auth/me はissuerが異なるBearer tokenの場合401を返す")
     void meReturnsUnauthorizedWhenIssuerDoesNotMatch() throws Exception {
         registerUser("user@example.com", "password123");
-        Long userId = userRepository.findByLoginEmail("user@example.com").orElseThrow().getId();
+        Long userId = userDao.selectByLoginEmail("user@example.com").orElseThrow().getId();
         String accessToken = createAccessToken("another-issuer", String.valueOf(userId), 0);
 
         mockMvc.perform(get("/api/auth/me")

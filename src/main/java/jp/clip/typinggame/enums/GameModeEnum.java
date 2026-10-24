@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.seasar.doma.Domain;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -16,9 +18,11 @@ import lombok.AllArgsConstructor;
  * <p>
  * APIとDBでは既存仕様に合わせて {@code 0}、{@code 1}、{@code 2} の数値を使い、
  * Javaコード上では {@link #EASY}、{@link #NORMAL}、{@link #HARD} として扱います。
+ * DBとの相互変換は、Domaのドメインとして {@link #fromKey(Integer)} と {@link #getKey()} で行います。
  * </p>
  */
 @Schema(description = "ゲームの難易度。0: Easy、1: Normal、2: Hard", enumAsRef = true)
+@Domain(valueType = Integer.class, factoryMethod = "fromKey", accessorMethod = "getKey")
 @AllArgsConstructor
 public enum GameModeEnum implements CodeEnum<Integer> {
 

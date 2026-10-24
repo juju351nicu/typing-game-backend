@@ -4,8 +4,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jp.clip.typinggame.dao.UserDao;
 import jp.clip.typinggame.entity.User;
-import jp.clip.typinggame.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -15,8 +15,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CurrentUserService {
 
-    /** ユーザー情報へアクセスするRepositoryです。 */
-    private final UserRepository userRepository;
+    /** ユーザー情報へアクセスするDAOです。 */
+    private final UserDao userDao;
 
     /**
      * 認証情報からユーザーEntityを取得します。
@@ -27,7 +27,7 @@ public class CurrentUserService {
     @Transactional(readOnly = true)
     public User findAuthenticatedUser(Authentication authentication) {
         LoginUserDetails userDetails = (LoginUserDetails) authentication.getPrincipal();
-        return userRepository.findById(userDetails.getUserId())
+        return userDao.selectById(userDetails.getUserId())
                 .orElseThrow(() -> new IllegalStateException("ログインユーザーが見つかりません。"));
     }
 }

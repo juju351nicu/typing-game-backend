@@ -20,14 +20,14 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import tools.jackson.databind.ObjectMapper;
 
-import jp.clip.typinggame.repository.ScoreRepository;
-import jp.clip.typinggame.repository.UserRepository;
+import jp.clip.typinggame.support.TestDataCleaner;
 
 /**
  * ログインユーザー別スコアAPIのController層を確認するテストです。
@@ -50,10 +50,7 @@ class MyScoreControllerTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ScoreRepository scoreRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private JdbcTemplate jdbcTemplate;
 
     /** 各テストで認証必須APIへ渡すアクセストークンです。 */
     private String accessToken;
@@ -69,8 +66,7 @@ class MyScoreControllerTest {
      */
     @BeforeEach
     void setUp() throws Exception {
-        scoreRepository.deleteAll();
-        userRepository.deleteAll();
+        TestDataCleaner.deleteAll(jdbcTemplate);
         accessToken = registerAndLogin("my-score-test@example.com", "password123");
     }
 

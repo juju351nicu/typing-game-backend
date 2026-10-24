@@ -1,15 +1,19 @@
 package jp.clip.typinggame.service;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+
+import org.seasar.doma.jdbc.UniqueConstraintException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import jp.clip.typinggame.dao.UserDao;
 import jp.clip.typinggame.dto.RegisterUserRequest;
 import jp.clip.typinggame.dto.UserResponse;
 import jp.clip.typinggame.entity.User;
-import jp.clip.typinggame.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -19,8 +23,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserService {
 
-    /** ユーザー情報へアクセスするRepositoryです。 */
-    private final UserRepository userRepository;
+    /** ユーザー情報へアクセスするDAOです。 */
+    private final UserDao userDao;
 
     /** パスワードを暗号化するEncoderです。 */
     private final PasswordEncoder passwordEncoder;
@@ -33,12 +37,18 @@ public class UserService {
      */
     @Transactional
     public UserResponse register(RegisterUserRequest request) {
-        if (userRepository.existsByLoginEmail(request.getLoginEmail())) {
+        if (userDao.existsByLoginEmail(request.getLoginEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "メールアドレスは既に登録されています。");
         }
 
         User user = toUserEntity(request);
-        return toResponse(userRepository.save(user));
+        try {
+            userDao.insert(user);
+        } catch (UniqueConstraintException e) {
+            // 存在確認の後に同じメールアドレスで同時登録された場合も、一意制約違反を409として返します。
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "メールアドレスは既に登録されています。");
+        }
+        return toResponse(user);
     }
 
     /**
@@ -64,6 +74,9 @@ public class UserService {
         User user = new User();
         user.setLoginEmail(request.getLoginEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        user.setCreatedAt(now);
+        user.setUpdatedAt(now);
         return user;
     }
 }
