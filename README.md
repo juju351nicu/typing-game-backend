@@ -91,6 +91,19 @@ Rancher DesktopなどでDocker CLI / Docker Composeを使える状態にして�
    docker compose down -v
    ```
 
+### ローカル用の初期データ
+
+ローカル起動時だけ、Flywayのrepeatable migration `src/main/resources/db/local/R__local_seed_data.sql` で次のデータを投入します。
+`db/local` は `application.yml`（ローカル）の `spring.flyway.locations` にだけ含めており、本番（`application-prod.yml`）とテストでは読み込みません。
+
+| 種別 | メールアドレス | パスワード |
+| --- | --- | --- |
+| 管理者 | `local-admin@example.com` | `admin-password` |
+| 一般ユーザー | `local-user@example.com` | `user-password` |
+
+- 2ユーザー分のスコア24件（全体ランキングのページ送り確認用）
+- 管理者でログインし、`/admin/notifications` からお知らせ送信を試せます
+
 他PCでもMySQLのバージョンと設定をそろえるため、MySQLだけDocker Composeで固定しています。
 Spring Bootアプリ本体はDocker化せず、ローカルのJava / Maven起動からDocker上のMySQLへ接続します。
 
