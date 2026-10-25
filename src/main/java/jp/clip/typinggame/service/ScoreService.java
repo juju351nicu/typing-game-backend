@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jp.clip.typinggame.dao.ScoreDao;
+import jp.clip.typinggame.dto.RankingPageResponse;
 import jp.clip.typinggame.dto.SaveScoreRequest;
 import jp.clip.typinggame.dto.ScoreResponse;
 import jp.clip.typinggame.entity.Score;
@@ -84,6 +85,75 @@ public class ScoreService {
                 limit).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    /**
+     * ランキング表示用のスコア情報をページ単位で取得します。
+     *
+     * <p>
+     * ページ番号はフロントエンドの表示と同じ1始まりで受け取り、
+     * SQLのOFFSETへは {@code (page - 1) * size} に変換して渡します。
+     * </p>
+     *
+     * @param mode 難易度
+     * @param gameRule ゲームルール
+     * @param timeLimitSeconds タイムアタック時の制限時間（秒）
+     * @param page ページ番号（1始まり）
+     * @param size 1ページあたりの件数
+     * @return 指定ページのスコア情報と総件数
+     */
+    @Transactional(readOnly = true)
+    public RankingPageResponse findRankingsPage(
+            Integer mode,
+            String gameRule,
+            Integer timeLimitSeconds,
+            int page,
+            int size) {
+        GameModeEnum gameModeEnum = mode == null ? null : GameModeEnum.fromKey(mode);
+        GameRuleEnum gameRuleEnum = gameRule == null ? null : GameRuleEnum.fromKey(gameRule);
+        long totalCount = scoreDao.countRankings(gameModeEnum, gameRuleEnum, timeLimitSeconds);
+        List<ScoreResponse> items = scoreDao.selectRankingsPage(
+                gameModeEnum,
+                gameRuleEnum,
+                timeLimitSeconds,
+                size,
+                calculateOffset(page, size)).stream()
+                .map(this::toResponse)
+                .toList();
+
+        RankingPageResponse response = new RankingPageResponse();
+        response.setItems(items);
+        response.setPage(page);
+        response.setSize(size);
+        response.setTotalCount(totalCount);
+        response.setTotalPages(calculateTotalPages(totalCount, size));
+        return response;
+    }
+
+    /**
+     * 1始まりのページ番号からSQLのOFFSET値を求めます。
+     *
+     * @param page ページ番号（1始まり）
+     * @param size 1ページあたりの件数
+     * @return 読み飛ばす件数
+     */
+    static int calculateOffset(int page, int size) {
+        return (page - 1) * size;
+    }
+
+    /**
+     * 総件数から総ページ数を求めます。
+     *
+     * <p>
+     * 該当データが0件でも画面には空の1ページ目を表示するため、最小値は1です。
+     * </p>
+     *
+     * @param totalCount 総件数
+     * @param size 1ページあたりの件数
+     * @return 総ページ数
+     */
+    static int calculateTotalPages(long totalCount, int size) {
+        return (int) Math.max(1, (totalCount + size - 1) / size);
     }
 
     /**

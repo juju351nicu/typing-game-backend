@@ -181,7 +181,8 @@ EC2上での配置、systemdのユニット定義、Nginxの設定などの運�
 | GET | `/api/auth/me` | 必要 | ログイン中ユーザー取得 |
 | POST | `/api/me/scores` | 必要 | ログインユーザーのスコア保存 |
 | GET | `/api/me/scores` | 必要 | ログインユーザーのスコア一覧取得 |
-| GET | `/api/rankings` | 不要 | ランキング取得 |
+| GET | `/api/rankings` | 不要 | ランキング取得（上位N件） |
+| GET | `/api/rankings/page` | 不要 | ランキングのページ単位取得 |
 | GET | `/api/me/notifications` | 必要 | 自分宛て・全体宛ての通知一覧取得（既読化しない） |
 | GET | `/api/me/notifications/unread-count` | 必要 | 通知の未読件数取得 |
 | POST | `/api/me/notifications/mark-read` | 必要 | 通知の既読化 |
@@ -189,6 +190,8 @@ EC2上での配置、systemdのユニット定義、Nginxの設定などの運�
 | GET | `/api/admin/notifications` | 管理者 | 送信済み通知の一覧取得 |
 
 `GET /api/rankings` は `mode`、`gameRule`、`timeLimitSeconds`、`limit` で絞り込め、スコア降順、クリアタイム昇順、作成日時降順で返します。
+
+`GET /api/rankings/page` は同じ絞り込み条件に加えて `page`（1始まり）と `size`（1〜100、既定10）を受け取り、`items`・`page`・`size`・`totalCount`・`totalPages` を返します。SQLでは `LIMIT size OFFSET (page - 1) * size` で指定ページだけを取得し、ページ間で行が重複・欠落しないよう並び順の最後に `id` を加えています。
 
 通知一覧・未読件数は直近30日の通知が対象で、一覧は新しい順に最大50件を返します。
 
@@ -214,7 +217,7 @@ Swagger関連のパスは `SecurityConfig` で認証不要にしていますが�
 ./mvnw test
 ```
 
-MockMvcによるControllerテストを中心に、10ファイル / 46テストで、ユーザー登録、ログイン、JWT検証、認証・認可エラー時のレスポンス形式、スコア保存・取得、ランキングの絞り込み、管理者による通知送信、通知の宛先・既読管理を検証しています。
+MockMvcによるControllerテストを中心に、11ファイル / 56テストで、ユーザー登録、ログイン、JWT検証、認証・認可エラー時のレスポンス形式、スコア保存・取得、ランキングの絞り込みとページング、管理者による通知送信、通知の宛先・既読管理を検証しています。
 テストDBはMySQLではなくH2のMySQL互換モードを使い、テーブルは本番と同じFlyway migrationから作成します。
 
 ## フロントエンド連携
