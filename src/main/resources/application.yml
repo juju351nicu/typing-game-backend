@@ -14,6 +14,8 @@ spring:
     locations:
       - classpath:db/migration
       - classpath:db/vendor/{vendor}
+      # ローカル開発専用のシード（管理者・一般ユーザー、ランキング確認用スコア）。本番・テストの設定には含めません。
+      - classpath:db/local
 
 # DomaのSQL方言です。ページングや識別子のクォートをMySQL向けに生成します。
 doma:

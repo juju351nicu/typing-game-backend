@@ -56,4 +56,39 @@ public interface ScoreDao {
      */
     @Select
     List<Score> selectRankings(GameModeEnum mode, GameRuleEnum gameRule, Integer timeLimitSeconds, int limit);
+
+    /**
+     * ランキング表示用のスコア情報を、指定した位置から指定件数だけ取得します。
+     *
+     * <p>
+     * 条件がnullの場合は、その条件では絞り込みません。
+     * 並び順はスコア降順、クリアタイム昇順、作成日時降順、ID降順です。
+     * ページをまたいで行が重複しないよう、最後にIDで並びを一意にしています。
+     * </p>
+     *
+     * @param mode 難易度
+     * @param gameRule ゲームルール
+     * @param timeLimitSeconds タイムアタック時の制限時間（秒）
+     * @param limit 取得件数
+     * @param offset 読み飛ばす件数
+     * @return ランキング表示用のスコア情報一覧
+     */
+    @Select
+    List<Score> selectRankingsPage(
+            GameModeEnum mode,
+            GameRuleEnum gameRule,
+            Integer timeLimitSeconds,
+            int limit,
+            int offset);
+
+    /**
+     * ランキングの絞り込み条件に一致するスコア件数を取得します。
+     *
+     * @param mode 難易度
+     * @param gameRule ゲームルール
+     * @param timeLimitSeconds タイムアタック時の制限時間（秒）
+     * @return 条件に一致するスコア件数
+     */
+    @Select
+    long countRankings(GameModeEnum mode, GameRuleEnum gameRule, Integer timeLimitSeconds);
 }

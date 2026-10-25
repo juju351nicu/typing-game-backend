@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
+import jp.clip.typinggame.dto.RankingPageResponse;
 import jp.clip.typinggame.dto.ScoreResponse;
 import jp.clip.typinggame.service.ScoreService;
 import lombok.RequiredArgsConstructor;
@@ -62,5 +63,54 @@ public class RankingController {
             @Max(value = 100, message = "取得件数は100以下で入力してください。")
             Integer limit) {
         return scoreService.findRankings(mode, gameRule, timeLimitSeconds, limit);
+    }
+
+    /**
+     * ランキング表示用のスコア情報をページ単位で取得します。
+     *
+     * <p>
+     * 全体ランキングはユーザー数・プレイ回数に応じて件数が増え続けるため、
+     * 画面で表示するページ分だけをLIMIT/OFFSETで取得します。
+     * </p>
+     *
+     * @param mode 難易度
+     * @param gameRule ゲームルール
+     * @param timeLimitSeconds タイムアタック時の制限時間（秒）
+     * @param page ページ番号（1始まり）
+     * @param size 1ページあたりの件数
+     * @return 指定ページのスコア情報と総件数
+     */
+    @GetMapping("/page")
+    public RankingPageResponse findRankingsPage(
+            @Parameter(description = "難易度。0: Easy、1: Normal、2: Hard", example = "2")
+            @RequestParam(required = false)
+            @Min(value = 0, message = "難易度は0以上で入力してください。")
+            @Max(value = 2, message = "難易度は2以下で入力してください。")
+            Integer mode,
+
+            @Parameter(description = "ゲームルール。normal または timeAttack", example = "timeAttack")
+            @RequestParam(required = false)
+            @Pattern(regexp = "normal|timeAttack", message = "ゲームルールはnormalまたはtimeAttackを入力してください。")
+            String gameRule,
+
+            @Parameter(description = "タイムアタック時の制限時間（秒）", example = "60")
+            @RequestParam(required = false)
+            @Min(value = 30, message = "制限時間は30秒以上で入力してください。")
+            @Max(value = 90, message = "制限時間は90秒以下で入力してください。")
+            Integer timeLimitSeconds,
+
+            @Parameter(description = "ページ番号（1始まり）", example = "1")
+            @RequestParam(defaultValue = "1")
+            @Min(value = 1, message = "ページ番号は1以上で入力してください。")
+            // OFFSET計算（(page - 1) * size）がintの範囲に収まるよう上限を設けます。
+            @Max(value = 10000, message = "ページ番号は10000以下で入力してください。")
+            Integer page,
+
+            @Parameter(description = "1ページあたりの件数", example = "10")
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "取得件数は1以上で入力してください。")
+            @Max(value = 100, message = "取得件数は100以下で入力してください。")
+            Integer size) {
+        return scoreService.findRankingsPage(mode, gameRule, timeLimitSeconds, page, size);
     }
 }

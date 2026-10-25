@@ -110,6 +110,104 @@ class RankingControllerTest {
     }
 
     /**
+     * ページ単位のランキング取得APIが、LIMIT/OFFSETで指定ページの行と総件数を返すことを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("GET /api/rankings/page は指定ページの行と総件数を返す")
+    void findRankingsPageReturnsRequestedPage() throws Exception {
+        for (int scoreValue = 1; scoreValue <= 5; scoreValue++) {
+            saveScore("00:00:30.00", scoreValue, 1, "normal", null);
+        }
+
+        mockMvc.perform(get("/api/rankings/page")
+                .param("page", "2")
+                .param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].score").value(3))
+                .andExpect(jsonPath("$.items[1].score").value(2))
+                .andExpect(jsonPath("$.page").value(2))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalCount").value(5))
+                .andExpect(jsonPath("$.totalPages").value(3));
+    }
+
+    /**
+     * 最終ページは残りの件数だけを返すことを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("GET /api/rankings/page は最終ページで残りの件数だけを返す")
+    void findRankingsPageReturnsRemainingItemsOnLastPage() throws Exception {
+        for (int scoreValue = 1; scoreValue <= 5; scoreValue++) {
+            saveScore("00:00:30.00", scoreValue, 1, "normal", null);
+        }
+
+        mockMvc.perform(get("/api/rankings/page")
+                .param("page", "3")
+                .param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].score").value(1));
+    }
+
+    /**
+     * 総件数も絞り込み条件に一致する件数だけを数えることを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("GET /api/rankings/page は絞り込み条件に一致する件数だけを総件数にする")
+    void findRankingsPageCountsFilteredScores() throws Exception {
+        saveScore("00:00:28.00", 12, 2, "timeAttack", 60);
+        saveScore("00:00:25.00", 20, 2, "timeAttack", 30);
+        saveScore("00:00:22.00", 30, 1, "normal", null);
+
+        mockMvc.perform(get("/api/rankings/page")
+                .param("mode", "2")
+                .param("gameRule", "timeAttack"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].score").value(20))
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    /**
+     * 該当データがない場合も、空の1ページ目として返すことを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("GET /api/rankings/page は該当データがない場合も総ページ数1を返す")
+    void findRankingsPageReturnsSinglePageWhenEmpty() throws Exception {
+        mockMvc.perform(get("/api/rankings/page"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(0)))
+                .andExpect(jsonPath("$.totalCount").value(0))
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    /**
+     * ページ番号のvalidationエラーを確認します。
+     *
+     * @throws Exception MockMvc実行時に例外が発生した場合
+     */
+    @Test
+    @DisplayName("GET /api/rankings/page は不正なページ番号の場合400を返す")
+    void findRankingsPageReturnsBadRequestWhenPageIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/rankings/page")
+                .param("page", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("page"));
+    }
+
+    /**
      * テスト用のスコアを保存します。
      *
      * @param time クリアタイム
